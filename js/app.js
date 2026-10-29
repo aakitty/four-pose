@@ -1,4 +1,4 @@
-import { TEMPLATES, FILTERS, FONTS, STYLES, BORDER_COLORS, BORDER_PATTERNS, defaultLook, layoutFor, renderLook, applyFilter, digicamFlash, downscale, formatDate } from './render.js';
+import { TEMPLATES, FILTERS, FONTS, STYLES, BORDER_COLORS, TEXT_COLORS, BORDER_PATTERNS, defaultLook, layoutFor, renderLook, applyFilter, digicamFlash, downscale, formatDate } from './render.js';
 
 // ---------- icons ----------
 const sv = (p, extra = '') => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" ${extra}>${p}</svg>`;
@@ -317,7 +317,7 @@ new ResizeObserver(() => S.screen === 'studio' && schedulePreview()).observe($('
 const TOOLS = [['template', 'Template', I.template], ['filter', 'Filter', I.filter], ['text', 'Text', I.text], ['border', 'Border', I.border]];
 function renderToolbar() { $('#toolbar').innerHTML = TOOLS.map(([id, label, ic]) => `<button class="tool ${S.tool === id ? 'on' : ''}" data-tool="${id}">${ic}<span>${label}</span></button>`).join(''); }
 $('#toolbar').addEventListener('click', e => { const b = e.target.closest('[data-tool]'); if (!b) return; S.tool === b.dataset.tool ? closeTool() : openTool(b.dataset.tool); });
-function openTool(t) { S.tool = t; $('#studio').classList.add('tool-open'); $('#toolSheet').setAttribute('aria-hidden', 'false'); renderToolbar(); renderTool(); setTimeout(schedulePreview, 320); }
+function openTool(t) { if (S.tool !== t) toolBody.scrollTop = 0; S.tool = t; $('#studio').classList.add('tool-open'); $('#toolSheet').setAttribute('aria-hidden', 'false'); renderToolbar(); renderTool(); setTimeout(schedulePreview, 320); }
 function closeTool() { S.tool = null; $('#studio').classList.remove('tool-open'); $('#toolSheet').setAttribute('aria-hidden', 'true'); renderToolbar(); setTimeout(schedulePreview, 320); }
 $('#toolDone').addEventListener('click', closeTool);
 
@@ -326,6 +326,28 @@ function thumbCanvas(look, h, shots = null) {
   const c = document.createElement('canvas'); const L = layoutFor(look); const dpr = Math.min(2, devicePixelRatio || 1);
   renderLook(c, look, shots, { scale: (h / L.H) * dpr, empty: !shots });
   c.style.height = h + 'px'; return c;
+}
+// Full-spectrum colour picker: presets, the phone's own colour wheel, and
+// hue + shade sliders to mix any colour.
+const mix = { tc: { h: 340, l: 50 }, bc: { h: 340, l: 50 } };
+function colorPicker(kind, current, presets) {
+  const isCustom = current && !presets.includes(current);
+  const m = mix[kind];
+  return `<div class="swatches" data-kind="${kind}"><button class="sw auto ${!current ? 'on' : ''}" data-${kind}="">AUTO</button>${presets.map(c => `<button class="sw ${current === c ? 'on' : ''}" data-${kind}="${c}" style="background:${c}" aria-label="${c}"></button>`).join('')}
+    <label class="sw wheel ${isCustom ? 'on' : ''}" aria-label="Pick any colour" ${isCustom ? `style="--cur:${current}"` : ''}><input type="color" id="${kind}Wheel" value="${current || '#C8102E'}"></label></div>
+    <div class="mixer"><div class="mix-row"><span>Hue</span><input type="range" class="hue-slider" id="${kind}Hue" min="0" max="360" value="${m.h}"></div>
+    <div class="mix-row"><span>Shade</span><input type="range" class="shade-slider" id="${kind}Light" min="4" max="96" value="${m.l}" style="--h:${m.h}"></div>
+    <div class="mix-out"><i id="${kind}Out" style="background:${current || 'transparent'}"></i><code id="${kind}Hex">${current ? current.toUpperCase() : 'Template colour'}</code></div></div>`;
+}
+function setPicked(kind, color, fromSlider) {
+  if (kind === 'tc') S.look.textColor = color; else S.look.border.color = color;
+  const box = toolBody.querySelector(`[data-kind=${kind}]`); if (!box) return;
+  box.querySelectorAll('.sw').forEach(b => b.classList.toggle('on', b.classList.contains('wheel') ? !!color && !b.parentNode.querySelector(`[data-${kind}="${color}"]`) : (b.dataset[kind] ?? null) === (color || '')));
+  const w = box.querySelector('.wheel'); if (color) w.style.setProperty('--cur', color);
+  $('#' + kind + 'Out').style.background = color || 'transparent'; $('#' + kind + 'Hex').textContent = color ? color.toUpperCase() : 'Template colour';
+  if (!fromSlider && color) $('#' + kind + 'Wheel').value = color;
+  schedulePreview();
+  if (kind === 'bc') clearTimeout(setPicked.t), setPicked.t = setTimeout(() => S.tool === 'border' && renderTool(), 400);
 }
 function renderTool() {
   const body = $('#toolBody'); const l = S.look;
@@ -347,13 +369,12 @@ function renderTool() {
       const c = base ? applyFilter(base, id, 100, 2) : document.createElement('canvas'); b.append(c); b.insertAdjacentHTML('beforeend', `<span>${f.label}</span>`); body.querySelector('#fltGrid').append(b);
     });
   } else if (S.tool === 'text') {
-    const colors = ['auto', '#1A1A1A', '#FFF4DC', '#C8102E', '#5B061A', '#E8B04B', '#F7A8C4'];
     body.innerHTML = `<input class="input" id="capInput" maxlength="28" value="${(l.caption || '').replace(/"/g, '&quot;')}" placeholder="Add a caption" aria-label="Caption">
-      <p class="label">Font</p><div class="font-row">${Object.entries(FONTS).map(([id, f]) => `<button class="font-opt ${l.font === id ? 'on' : ''}" data-font="${id}"><b style="font-family:'${f.family}';font-weight:${f.weight}">Aa</b>${f.label}</button>`).join('')}</div>
-      <p class="label">Colour</p><div class="swatches">${colors.map(c => c === 'auto' ? `<button class="sw auto ${!l.textColor ? 'on' : ''}" data-tc="">AUTO</button>` : `<button class="sw ${l.textColor === c ? 'on' : ''}" data-tc="${c}" style="background:${c}" aria-label="${c}"></button>`).join('')}</div>
+      <p class="label">Font <span class="muted">\u00b7 ${Object.keys(FONTS).length}</span></p><div class="font-row">${Object.entries(FONTS).map(([id, f]) => `<button class="font-opt ${l.font === id ? 'on' : ''}" data-font="${id}"><b style="font-family:'${f.family}';font-weight:${f.weight};font-style:${f.style || 'normal'}">Aa</b>${f.label}</button>`).join('')}</div>
+      <p class="label">Colour</p>${colorPicker('tc', l.textColor, TEXT_COLORS)}
       <div class="row-between" style="margin-top:16px"><div><p class="label" style="margin:0">Date stamp</p><p class="sub">Adds today's date like an old film camera</p></div><label class="switch"><input type="checkbox" id="dateOn" ${l.dateStamp ? 'checked' : ''}><span></span></label></div>`;
   } else if (S.tool === 'border') {
-    body.innerHTML = `<p class="label" style="margin-top:4px">Colour</p><div class="swatches"><button class="sw auto ${!l.border.color ? 'on' : ''}" data-bc="">AUTO</button>${BORDER_COLORS.map(c => `<button class="sw ${l.border.color === c ? 'on' : ''}" data-bc="${c}" style="background:${c}" aria-label="${c}"></button>`).join('')}</div>
+    body.innerHTML = `<p class="label" style="margin-top:4px">Colour</p>${colorPicker('bc', l.border.color, BORDER_COLORS)}
       <p class="label">Pattern</p><div class="pat-row" id="patRow"></div>
       <p class="label">Thickness</p><div class="seg full mini">${['S', 'M', 'L'].map(t => `<button class="${l.border.thickness === t ? 'on' : ''}" data-th="${t}">${{ S: 'Thin', M: 'Medium', L: 'Thick' }[t]}</button>`).join('')}</div>`;
     Object.entries(BORDER_PATTERNS).forEach(([id, label]) => {
@@ -371,16 +392,23 @@ toolBody.addEventListener('click', e => {
   if ((t = e.target.closest('[data-st]'))) { S.tplFilter = t.dataset.st; renderTool(); return; }
   if ((t = e.target.closest('.tpl'))) { const d = defaultLook(t.dataset.id); Object.assign(l, { template: t.dataset.id, filter: d.filter, font: d.font, textColor: null, border: { ...d.border, thickness: l.border.thickness } }); }
   else if ((t = e.target.closest('.flt'))) l.filter = t.dataset.id;
-  else if ((t = e.target.closest('[data-font]'))) l.font = t.dataset.font;
-  else if ((t = e.target.closest('[data-tc]'))) l.textColor = t.dataset.tc || null;
-  else if ((t = e.target.closest('[data-bc]'))) l.border.color = t.dataset.bc || null;
+  else if ((t = e.target.closest('[data-tc]'))) { setPicked('tc', t.dataset.tc || null); return; }
+  else if ((t = e.target.closest('[data-bc]'))) { setPicked('bc', t.dataset.bc || null); return; }
+  else if ((t = e.target.closest('[data-font]'))) { l.font = t.dataset.font; toolBody.querySelectorAll('.font-opt').forEach(b => b.classList.toggle('on', b === t)); schedulePreview(); return; }
   else if ((t = e.target.closest('[data-pat]'))) l.border.pattern = t.dataset.pat;
   else if ((t = e.target.closest('[data-th]'))) l.border.thickness = t.dataset.th;
   else return;
-  renderTool(); schedulePreview();
+  const top = toolBody.scrollTop; renderTool(); toolBody.scrollTop = top; schedulePreview();
 });
 toolBody.addEventListener('input', e => {
   const l = S.look;
+  const mk = e.target.id.match(/^(tc|bc)(Wheel|Hue|Light)$/);
+  if (mk) {
+    const [, kind, part] = mk; const m = mix[kind];
+    if (part === 'Wheel') { setPicked(kind, e.target.value.toUpperCase()); return; }
+    if (part === 'Hue') { m.h = +e.target.value; $('#' + kind + 'Light').style.setProperty('--h', m.h); } else m.l = +e.target.value;
+    setPicked(kind, hslHex(m.h, 85, m.l).toUpperCase(), true); return;
+  }
   if (e.target.id === 'intensity') { l.intensity = +e.target.value; $('#intVal').textContent = l.intensity + '%'; }
   else if (e.target.id === 'capInput') l.caption = e.target.value;
   else if (e.target.id === 'dateOn') l.dateStamp = e.target.checked;
@@ -445,6 +473,14 @@ const SEED = [
   ['@cheetah.club', 'booth-red', { caption: 'wild ones', border: { color: '#E8B04B', pattern: 'cheetah', thickness: 'M' }, font: 'handwritten', textColor: '#1A1A1A' }],
   ['@polka.pop', 'kawaii-pop', { caption: 'cherry on top', border: { color: '#C8102E', pattern: 'polka', thickness: 'L' }, font: 'classic', textColor: '#FFF4DC' }],
   ['@seoul.strips', 'y2k-hearts', { caption: 'concert night', layout: 'grid', font: 'pixel' }],
+  ['@cherry.cola', 'cherry-bomb', { caption: 'cherry on top' }],
+  ['@discoqueen', 'disco-ball', { caption: 'saturday night' }],
+  ['@stargirl.xo', 'star-girl', { caption: 'wish upon', layout: 'grid' }],
+  ['@neon.dreams', 'neon-nights', { caption: 'after dark' }],
+  ['@picnicpals', 'gingham-picnic', { caption: 'picnic day' }],
+  ['@vhs.tapes', 'camcorder', { caption: 'rec' }],
+  ['@sage.and.sun', 'sage-garden', { caption: 'garden party', layout: 'grid' }],
+  ['@harley.q', 'harlequin', { caption: 'showtime' }],
   ['@goldenhour', 'minimal-mono', { caption: 'golden hour', border: { color: '#E8B04B', pattern: 'solid', thickness: 'L' }, font: 'typewriter', filter: 'sepia' }],
 ].map(([nick, tpl, over], i) => ({ id: 's' + i, nick, look: { ...defaultLook(tpl), ...over, border: { ...defaultLook(tpl).border, ...(over.border || {}) } } }));
 const styleOf = look => TEMPLATES[look.template].style;
@@ -524,7 +560,7 @@ $('#btnSettings').innerHTML = I.gear; $('#btnFeed').innerHTML = I.feed; $('#btnF
 applyTheme(); renderCamControls();
 history.replaceState({ s: 'camera' }, '');
 document.addEventListener('visibilitychange', () => { if (!document.hidden && S.screen === 'camera') startCamera(); });
-Promise.all(['Shrikhand', 'Special Elite', 'Caveat', 'VT323', 'Inter', 'Bungee'].map(f => document.fonts.load(`${f === 'Caveat' || f === 'Inter' ? 700 : 400} 40px "${f}"`).catch(() => { }))).then(() => { if (S.screen === 'studio') schedulePreview(); if (S.screen === 'feed') renderFeed(); });
+Promise.all(Object.values(FONTS).map(f => document.fonts.load(`${f.style || 'normal'} ${f.weight} 40px "${f.family}"`).catch(() => { }))).then(() => { if (S.screen === 'studio') schedulePreview(); if (S.screen === 'feed') renderFeed(); });
 startCamera();
 if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => { });
 window.__fp = S; // debug hook
