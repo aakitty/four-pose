@@ -57,14 +57,14 @@ export const FILTERS = {
 export const STYLES = ['Y2K', 'Kawaii', 'Film', 'Retro', 'Minimal', 'Booth'];
 
 export const TEMPLATES = {
-  'y2k-hearts': { name: 'Y2K Hearts', style: 'Y2K', bg: { type: 'hearts', color: '#F7A8C4', accent: '#FFF4DC' }, frame: { color: '#FFFFFF', width: 8, radius: 10 }, deco: 'sparkles', font: 'bubble', text: '#5B061A', filter: 'cyan' },
+  'y2k-hearts': { name: 'Y2K Hearts', style: 'Y2K', bg: { type: 'hearts', color: '#F7A8C4', accent: '#FFF4DC' }, frame: { color: '#FFFFFF', width: 8, radius: 10 }, deco: 'sparkles', font: 'sign', text: '#5B061A', filter: 'cyan' },
   'y2k-chrome': { name: 'Y2K Chrome', style: 'Y2K', bg: { type: 'chrome' }, frame: { color: '#1A1A1A', width: 4, radius: 4 }, deco: 'stars', font: 'pixel', text: '#1A1A1A', filter: 'cyan' },
-  'kawaii-pop': { name: 'Kawaii Pop', style: 'Kawaii', bg: { type: 'polka', color: '#FBE7A1', accent: '#F7A8C4' }, frame: { color: '#FFFFFF', width: 10, radius: 22 }, deco: 'hearts', font: 'bubble', text: '#C8102E', filter: 'faded' },
+  'kawaii-pop': { name: 'Kawaii Pop', style: 'Kawaii', bg: { type: 'polka', color: '#FBE7A1', accent: '#F7A8C4' }, frame: { color: '#FFFFFF', width: 10, radius: 22 }, deco: 'hearts', font: 'sign', text: '#C8102E', filter: 'faded' },
   'pastel-doodle': { name: 'Pastel Doodle', style: 'Kawaii', bg: { type: 'checker', color: '#F3C9B5', accent: '#F8DDD0' }, frame: { color: '#FFF4DC', width: 8, radius: 16 }, deco: 'doodles', font: 'handwritten', text: '#5B061A', filter: 'sepia' },
   'film-35': { name: 'Film 35mm', style: 'Film', bg: { type: 'solid', color: '#1A1A1A' }, frame: null, deco: 'sprockets', font: 'typewriter', text: '#FFF4DC', filter: 'film', date: '#FF8A3D' },
   'film-noir': { name: 'Film Noir', style: 'Film', bg: { type: 'solid', color: '#0E0E0E' }, frame: { color: '#FFFFFF', width: 3, radius: 0 }, deco: null, font: 'typewriter', text: '#FFFFFF', filter: 'bw' },
   'minimal-mono': { name: 'Minimal Mono', style: 'Minimal', bg: { type: 'solid', color: '#FFF4DC' }, frame: { color: '#1A1A1A', width: 2, radius: 0 }, deco: null, font: 'classic', text: '#1A1A1A', filter: 'original' },
-  'booth-red': { name: 'Booth Red', style: 'Booth', bg: { type: 'solid', color: '#C8102E' }, frame: { color: '#FFF4DC', width: 6, radius: 6 }, deco: 'bulbs', font: 'bubble', text: '#FFF4DC', filter: 'original' },
+  'booth-red': { name: 'Booth Red', style: 'Booth', bg: { type: 'solid', color: '#C8102E' }, frame: { color: '#FFF4DC', width: 6, radius: 6 }, deco: 'bulbs', font: 'sign', text: '#FFF4DC', filter: 'original' },
   'harlequin': { name: 'Harlequin', style: 'Booth', bg: { type: 'harlequin', color: '#5B061A', accent: '#C8102E' }, frame: { color: '#E8B04B', width: 6, radius: 4 }, band: '#5B061A', deco: null, font: 'vogue', text: '#E8B04B', filter: 'kodak' },
   'disco-ball': { name: 'Disco Ball', style: 'Booth', bg: { type: 'disco', color: '#BFC0C8' }, frame: { color: '#1A1A1A', width: 5, radius: 6 }, band: '#1A1A1A', deco: 'sparkles', font: 'marquee', text: '#E8B04B', filter: 'vivid' },
   'retro-stripes': { name: 'Candy Stripe', style: 'Booth', bg: { type: 'stripes', color: '#FFF4DC', accent: '#C8102E' }, frame: { color: '#FFF4DC', width: 8, radius: 6 }, band: '#FFF4DC', deco: null, font: 'retro', text: '#C8102E', filter: 'film' },

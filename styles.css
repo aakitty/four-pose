@@ -39,7 +39,7 @@
 :root[data-theme="dark"] {
   --bg: #120A0C; --surface: #3E0412; --ph: #5B061A; --line: #6B1A2C; --muted-shape: #8A4A58;
   --primary: #C8102E; --on-primary: #FFF4DC; --text: #FFF4DC; --muted: #D9B7A8; --strong: #E8B04B;
-  --title-font: 'Shrikhand', 'Inter', sans-serif; --title-color: #E8344F; --title-size: 24px;
+  --title-font: 'Bungee', 'Inter', sans-serif; --title-color: #E8344F; --title-size: 21px;
   --scrim: rgba(0, 0, 0, 0.6); --sheet: #1C0E12; --chip-on: #C8102E; --chip-on-text: #FFF4DC;
   color-scheme: dark;
 }
