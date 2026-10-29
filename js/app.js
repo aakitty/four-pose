@@ -73,7 +73,7 @@ function show(id, push = true) {
   $$('.screen').forEach(s => s.classList.toggle('active', s.id === id));
   const prev = S.screen; S.screen = id;
   if (push) history.pushState({ s: id }, '');
-  if (id === 'camera') startCamera(); else if (prev === 'camera') stopCamera();
+  if (id === 'camera') startCamera(); else if (prev === 'camera') pauseCamera();
   updateBarColor();
 }
 window.addEventListener('popstate', e => {
@@ -96,27 +96,44 @@ $('#scrim').addEventListener('click', () => closeSheet());
 
 // ---------- camera ----------
 const video = $('#video');
-async function startCamera() {
-  if (S.stream) return;
+// The camera stream is opened once and kept alive for the whole visit, so the
+// browser only asks for permission the first time (re-requesting is what makes
+// Safari prompt again and again). We only reopen it if the phone killed it.
+let camPending = null;
+const streamLive = () => S.stream && S.stream.getVideoTracks().some(t => t.readyState === 'live');
+function startCamera() {
+  if (streamLive()) { attachVideo(); return Promise.resolve(); }
+  if (camPending) return camPending;
+  camPending = openCamera().finally(() => { camPending = null; });
+  return camPending;
+}
+function attachVideo() {
+  if (video.srcObject !== S.stream) video.srcObject = S.stream;
+  video.classList.toggle('mirror', S.facing === 'user');
+  if (S.screen === 'camera') video.play().catch(() => { });
+}
+async function openCamera() {
   const msg = $('#camMsg');
   if (!navigator.mediaDevices?.getUserMedia) {
-    msg.hidden = false; $('#camMsgBody').textContent = 'This browser can’t open the camera here. Open Four Poses in Safari or Chrome from its https link.'; $('#btnAllowCam').hidden = true; return;
+    msg.hidden = false; $('#camMsgBody').textContent = 'This browser can\u2019t open the camera here. Open Four Poses in Safari or Chrome from its https link.'; $('#btnAllowCam').hidden = true; return;
   }
   try {
+    const old = S.stream;
     S.stream = await navigator.mediaDevices.getUserMedia({ audio: false, video: { facingMode: S.facing, width: { ideal: 1920 }, height: { ideal: 1440 } } });
-    if (S.screen !== 'camera') { stopCamera(); return; }
-    video.srcObject = S.stream; video.classList.toggle('mirror', S.facing === 'user');
-    await video.play().catch(() => { });
-    msg.hidden = true;
+    if (old && old !== S.stream) old.getTracks().forEach(t => t.stop());
+    store.set('camOK', true);
+    S.stream.getVideoTracks()[0]?.addEventListener('ended', () => { if (!document.hidden && S.screen === 'camera') startCamera(); });
+    attachVideo(); msg.hidden = true;
   } catch (err) {
     S.stream = null; msg.hidden = false; $('#btnAllowCam').hidden = false;
     $('#camMsgBody').textContent = err?.name === 'NotAllowedError'
-      ? 'Camera access is off. Allow it for this site in your browser settings, then tap the button.'
-      : 'We couldn’t start the camera. Close other apps using it and try again.';
+      ? (isIOS ? 'Camera access is off. Tap \u201caA\u201d in the address bar \u2192 Website Settings \u2192 Camera \u2192 Allow, then tap the button.' : 'Camera access is off. Tap the lock icon by the address \u2192 Permissions \u2192 Camera \u2192 Allow, then tap the button.')
+      : 'We couldn\u2019t start the camera. Close other apps using it and try again.';
   }
 }
+function pauseCamera() { video.pause(); }
 function stopCamera() { if (S.stream) { S.stream.getTracks().forEach(t => t.stop()); S.stream = null; video.srcObject = null; } }
-$('#btnAllowCam').addEventListener('click', () => { stopCamera(); startCamera(); });
+$('#btnAllowCam').addEventListener('click', () => { startCamera(); });
 
 function grabFrame() {
   const L = layoutFor({ layout: S.layout, border: { thickness: 'M' } });
@@ -194,7 +211,7 @@ function ringColor() {
 $('#btnFlash').addEventListener('click', () => { S.flash = { off: 'on', on: 'digicam', digicam: 'off' }[S.flash]; renderCamControls(); toast({ off: 'Flash off', on: 'Flash on', digicam: '2000s digicam flash' }[S.flash], 1300); });
 $('#btnTimer').addEventListener('click', () => { S.timer = S.timer === 3 ? 5 : 3; renderCamControls(); toast(`${S.timer} seconds between poses`, 1300); });
 $$('.seg [data-layout]').forEach(b => b.addEventListener('click', () => { if (S.capturing) return; S.layout = b.dataset.layout; S.shots = [null, null, null, null]; renderCamControls(); }));
-$('#btnFlip').addEventListener('click', async () => { if (S.capturing) return; S.facing = S.facing === 'user' ? 'environment' : 'user'; stopCamera(); await startCamera(); });
+$('#btnFlip').addEventListener('click', async () => { if (S.capturing) return; S.facing = S.facing === 'user' ? 'environment' : 'user'; S.stream?.getTracks().forEach(t => t.stop()); await startCamera(); });
 $('#btnShutter').addEventListener('click', shoot);
 $('#btnFeed').addEventListener('click', () => { if (!S.capturing) { renderFeed(); show('feed'); } });
 $('#btnSettings').addEventListener('click', () => openSheet('settingsSheet'));
@@ -506,7 +523,7 @@ $('#btnInstall').addEventListener('click', async () => { if (!deferredInstall) r
 $('#btnSettings').innerHTML = I.gear; $('#btnFeed').innerHTML = I.feed; $('#btnFlip').innerHTML = I.flip;
 applyTheme(); renderCamControls();
 history.replaceState({ s: 'camera' }, '');
-document.addEventListener('visibilitychange', () => { if (document.hidden) stopCamera(); else if (S.screen === 'camera') startCamera(); });
+document.addEventListener('visibilitychange', () => { if (!document.hidden && S.screen === 'camera') startCamera(); });
 Promise.all(['Shrikhand', 'Special Elite', 'Caveat', 'VT323', 'Inter', 'Bungee'].map(f => document.fonts.load(`${f === 'Caveat' || f === 'Inter' ? 700 : 400} 40px "${f}"`).catch(() => { }))).then(() => { if (S.screen === 'studio') schedulePreview(); if (S.screen === 'feed') renderFeed(); });
 startCamera();
 if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => { });
