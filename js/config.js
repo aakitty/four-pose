@@ -2,4 +2,4 @@
 // (Project Settings → API). The anon key is meant to be public; the
 // database rules in supabase/setup.sql decide what it is allowed to do.
 export const SUPABASE_URL = 'https://gjslkdvyovtiayvgzmxk.supabase.co';
-export const SUPABASE_ANON_KEY = '';
+export const SUPABASE_ANON_KEY = 'sb_publishable_P6gTuHB0-wVfbXnttdOgGw_CkmyK3CF';
