@@ -36,11 +36,11 @@ let toastT;
 function toast(msg, ms = 2200) { const t = $('#toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), ms); }
 
 // ---------- state ----------
-const RING_PRESETS = [['White', '#FFFFFF'], ['Warm', '#FFD9A8'], ['Pink', '#F7A8C4'], ['Green', '#8FE3A6'], ['Blue', '#9EC9FF'], ['Purple', '#C6A8FF']];
+const RING_PRESETS = [['White', '#FFFFFF'], ['Warm', '#FFC98A'], ['Pink', '#FF4FA3'], ['Red', '#FF1A1A'], ['Orange', '#FF7A00'], ['Yellow', '#FFE600'], ['Green', '#00E05A'], ['Cyan', '#00E5FF'], ['Blue', '#1F5BFF'], ['Purple', '#9B3BFF']];
 const S = {
   screen: 'camera', facing: 'user', stream: null,
   flash: 'off', timer: 3, layout: 'strip',
-  ring: store.get('ring', { on: false, name: 'Pink', color: '#F7A8C4', bri: 100 }),
+  ring: store.get('ring', { on: false, name: 'Pink', color: '#FF4FA3', bri: 100 }),
   shots: [null, null, null, null], small: [null, null, null, null], version: 0,
   capturing: false, retakeIndex: null,
   selecting: false, selected: new Set(),
@@ -85,7 +85,7 @@ window.addEventListener('popstate', e => {
 });
 function openSheet(id) {
   closeSheet(true); sheetOpen = id;
-  $('#scrim').hidden = false; $('#' + id).classList.add('open'); $('#' + id).setAttribute('aria-hidden', 'false');
+  $('#scrim').hidden = false; $('#scrim').classList.toggle('clear', id === 'ringSheet'); $('#' + id).classList.add('open'); $('#' + id).setAttribute('aria-hidden', 'false');
 }
 function closeSheet(silent) {
   if (!sheetOpen) return;
@@ -199,11 +199,12 @@ function renderCamControls() {
   $$('.seg [data-layout]').forEach(b => b.classList.toggle('on', b.dataset.layout === S.layout));
   $('#vf').classList.toggle('grid', S.layout === 'grid');
   const cam = $('#camera'); cam.classList.toggle('ring', S.ring.on); cam.style.setProperty('--ring', ringColor());
-  if (S.ring.on) { cam.style.setProperty('--text', '#1A1A1A'); cam.style.setProperty('--muted', '#3A2A26'); cam.style.setProperty('--strong', '#1A1A1A'); cam.style.setProperty('--surface', 'rgba(255,255,255,.55)'); cam.style.setProperty('--line', 'rgba(0,0,0,.18)'); }
+  if (S.ring.on) { const lightBg = ringLum() > 0.55; const fg = lightBg ? '#1A1A1A' : '#FFFFFF'; cam.style.setProperty('--text', fg); cam.style.setProperty('--muted', fg); cam.style.setProperty('--strong', fg); cam.style.setProperty('--surface', lightBg ? 'rgba(255,255,255,.35)' : 'rgba(0,0,0,.18)'); cam.style.setProperty('--line', lightBg ? 'rgba(0,0,0,.2)' : 'rgba(255,255,255,.35)'); }
   else ['--text', '--muted', '--strong', '--surface', '--line'].forEach(v => cam.style.removeProperty(v));
   const chip = $('#ringChip'); chip.hidden = !S.ring.on; chip.textContent = `Ring light · ${S.ring.name}`;
   renderProgress(); updateBarColor();
 }
+function ringLum() { const n = parseInt(ringColor().slice(1), 16); return (0.299 * (n >> 16 & 255) + 0.587 * (n >> 8 & 255) + 0.114 * (n & 255)) / 255; }
 function ringColor() {
   const k = S.ring.bri / 100; const n = parseInt(S.ring.color.slice(1), 16);
   return '#' + [n >> 16 & 255, n >> 8 & 255, n & 255].map(v => Math.round(v * k).toString(16).padStart(2, '0')).join('');
@@ -222,13 +223,13 @@ $('#ringChip').addEventListener('click', () => openRingSheet());
 function openRingSheet() {
   $('#ringOn').checked = S.ring.on;
   $('#ringPresets').innerHTML = RING_PRESETS.map(([n, c]) => `<button class="preset ${S.ring.name === n ? 'on' : ''}" data-n="${n}" data-c="${c}"><i style="background:${c}"></i>${n}</button>`).join('');
-  $('#ringSwatch').style.background = S.ring.color; $('#ringBri').value = S.ring.bri; $('#ringBriVal').textContent = S.ring.bri + '%';
+  $('#ringSwatch').style.background = ringColor(); if (S.ring.hue != null) $('#ringHue').value = S.ring.hue; $('#ringBri').value = S.ring.bri; $('#ringBriVal').textContent = S.ring.bri + '%';
   openSheet('ringSheet');
 }
 function saveRing() { store.set('ring', S.ring); renderCamControls(); }
 $('#ringPresets').addEventListener('click', e => { const b = e.target.closest('.preset'); if (!b) return; S.ring.name = b.dataset.n; S.ring.color = b.dataset.c; S.ring.on = true; $('#ringOn').checked = true; $$('.preset').forEach(p => p.classList.toggle('on', p === b)); $('#ringSwatch').style.background = S.ring.color; saveRing(); });
-$('#ringHue').addEventListener('input', e => { const h = +e.target.value; S.ring.color = hslHex(h, 88, 74); S.ring.name = 'Custom'; S.ring.on = true; $('#ringOn').checked = true; $$('.preset').forEach(p => p.classList.remove('on')); $('#ringSwatch').style.background = S.ring.color; saveRing(); });
-$('#ringBri').addEventListener('input', e => { S.ring.bri = +e.target.value; $('#ringBriVal').textContent = S.ring.bri + '%'; saveRing(); });
+$('#ringHue').addEventListener('input', e => { const h = +e.target.value; S.ring.color = hslHex(h, 100, 50).toUpperCase(); S.ring.hue = h; S.ring.bri = 100; $('#ringBri').value = 100; $('#ringBriVal').textContent = '100%'; S.ring.name = 'Custom'; S.ring.on = true; $('#ringOn').checked = true; $$('.preset').forEach(p => p.classList.remove('on')); $('#ringSwatch').style.background = ringColor(); saveRing(); });
+$('#ringBri').addEventListener('input', e => { S.ring.bri = +e.target.value; $('#ringBriVal').textContent = S.ring.bri + '%'; $('#ringSwatch').style.background = ringColor(); saveRing(); });
 $('#ringOn').addEventListener('change', e => { S.ring.on = e.target.checked; saveRing(); });
 $('#ringDone').addEventListener('click', () => closeSheet());
 function hslHex(h, s, l) { s /= 100; l /= 100; const k = n => (n + h / 30) % 12, a = s * Math.min(l, 1 - l); const f = n => l - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1))); return '#' + [f(0), f(8), f(4)].map(x => Math.round(x * 255).toString(16).padStart(2, '0')).join(''); }
