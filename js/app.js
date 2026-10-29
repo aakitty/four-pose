@@ -1,4 +1,5 @@
 import { TEMPLATES, FILTERS, FONTS, STYLES, BORDER_COLORS, TEXT_COLORS, BORDER_PATTERNS, defaultLook, layoutFor, renderLook, applyFilter, digicamFlash, downscale, formatDate } from './render.js';
+import * as cloud from './cloud.js';
 
 // ---------- icons ----------
 const sv = (p, extra = '') => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" ${extra}>${p}</svg>`;
@@ -214,7 +215,7 @@ $('#btnTimer').addEventListener('click', () => { S.timer = S.timer === 3 ? 5 : 3
 $$('.seg [data-layout]').forEach(b => b.addEventListener('click', () => { if (S.capturing) return; S.layout = b.dataset.layout; S.shots = [null, null, null, null]; renderCamControls(); }));
 $('#btnFlip').addEventListener('click', async () => { if (S.capturing) return; S.facing = S.facing === 'user' ? 'environment' : 'user'; S.stream?.getTracks().forEach(t => t.stop()); await startCamera(); });
 $('#btnShutter').addEventListener('click', shoot);
-$('#btnFeed').addEventListener('click', () => { if (!S.capturing) { renderFeed(); show('feed'); } });
+$('#btnFeed').addEventListener('click', () => { if (!S.capturing) { renderFeed(); show('feed'); refreshFeed(); } });
 $('#btnSettings').addEventListener('click', () => openSheet('settingsSheet'));
 $('#btnRing').addEventListener('click', () => { openRingSheet(); });
 $('#ringChip').addEventListener('click', () => openRingSheet());
@@ -451,14 +452,26 @@ function postLook() { const l = clone(S.look); if (!$('#postKeepText').checked) 
 function drawPostPreview() { const c = $('#postCanvas'); const l = postLook(); const L = layoutFor(l); renderLook(c, l, null, { scale: (110 / L.W) * 2, empty: true }); c.style.width = '110px'; }
 $('#postKeepText').addEventListener('change', drawPostPreview);
 $('#postCancel').addEventListener('click', () => closeSheet());
-$('#postGo').addEventListener('click', () => {
+$('#postGo').addEventListener('click', async () => {
   let nick = $('#postNick').value.trim().replace(/\s+/g, '');
   if (!nick) { toast('Pick a nickname first'); $('#postNick').focus(); return; }
   if (!nick.startsWith('@')) nick = '@' + nick;
-  if (/(fuck|shit|bitch|sex|porn|nazi)/i.test(nick + ' ' + $('#postNick').value)) { toast('Please choose a kinder nickname'); return; }
+  if (!/^@[A-Za-z0-9._]{1,20}$/.test(nick)) { toast('Use letters, numbers, dots or underscores'); return; }
+  if (/(fuck|shit|bitch|sex|porn|nazi|cunt|slut|whore|rape)/i.test(nick + ' ' + (S.look.caption || ''))) { toast('Please keep it kind'); return; }
   store.set('nick', nick.slice(1));
-  const posts = store.get('posts', []); posts.unshift({ id: 'u' + Date.now(), nick, look: postLook(), ts: Date.now(), mine: true }); store.set('posts', posts.slice(0, 60));
-  closeSheet(); toast('Posted! Your look is on the feed'); S.feedFilter = 'All'; renderFeed(); show('feed');
+  const btn = $('#postGo'); btn.disabled = true; btn.textContent = 'Posting\u2026';
+  try {
+    if (cloud.enabled) {
+      const post = await cloud.postLook(nick, postLook());
+      const mine = store.get('mine', []); mine.unshift(post.id); store.set('mine', mine.slice(0, 200));
+      cloudLooks = [post, ...cloudLooks.filter(x => x.id !== post.id)]; store.set('cloudCache', cloudLooks);
+    } else {
+      const posts = store.get('posts', []); posts.unshift({ id: 'u' + Date.now(), nick, look: postLook(), ts: Date.now(), mine: true }); store.set('posts', posts.slice(0, 60));
+    }
+    closeSheet(); toast(cloud.enabled ? 'Posted! Everyone can see your look now' : 'Posted on this phone'); S.feedFilter = 'All'; renderFeed(); show('feed');
+  } catch (e) {
+    toast(String(e.message).includes('Too many') ? 'Lots of posts right now, try again in a minute' : 'Couldn\u2019t post. Check your internet and try again.', 3000);
+  } finally { btn.disabled = false; btn.textContent = 'Post look'; }
 });
 
 // ---------- feed ----------
@@ -485,9 +498,19 @@ const SEED = [
   ['@goldenhour', 'minimal-mono', { caption: 'golden hour', border: { color: '#E8B04B', pattern: 'solid', thickness: 'L' }, font: 'typewriter', filter: 'sepia' }],
 ].map(([nick, tpl, over], i) => ({ id: 's' + i, nick, look: { ...defaultLook(tpl), ...over, border: { ...defaultLook(tpl).border, ...(over.border || {}) } } }));
 const styleOf = look => TEMPLATES[look.template].style;
+let cloudLooks = (store.get('cloudCache', []) || []).map(x => ({ ...x, look: cloud.cleanLook(x.look) })).filter(x => x.look);
+let feedLoading = false, feedError = false, lastFetch = 0;
+async function refreshFeed(force) {
+  if (!cloud.enabled || feedLoading || (!force && Date.now() - lastFetch < 15000)) return;
+  feedLoading = true; feedError = false; if (S.screen === 'feed') renderFeed();
+  try { cloudLooks = await cloud.fetchLooks(); lastFetch = Date.now(); store.set('cloudCache', cloudLooks); }
+  catch { feedError = true; }
+  feedLoading = false; if (S.screen === 'feed') renderFeed();
+}
 function allLooks() {
-  const hidden = store.get('hidden', []); const reported = store.get('reported', []);
-  return [...store.get('posts', []), ...SEED].filter(p => !hidden.includes(p.nick) && !reported.includes(p.id));
+  const hidden = store.get('hidden', []); const reported = store.get('reported', []); const mine = store.get('mine', []);
+  const shared = cloudLooks.map(p => ({ ...p, mine: mine.includes(p.id) }));
+  return [...shared, ...store.get('posts', []), ...SEED].filter(p => !hidden.includes(p.nick) && !reported.includes(p.id));
 }
 function renderFeed() {
   $('#feedChips').innerHTML = ['All', ...STYLES].map(s => `<button class="chip ${S.feedFilter === s ? 'on' : ''}" data-f="${s}">${s}</button>`).join('');
@@ -503,7 +526,7 @@ function renderFeed() {
     rail.append(b);
   });
   sc.append(rail);
-  const h2 = document.createElement('div'); h2.className = 'feed-h'; h2.innerHTML = '<h3>From the community</h3><span>Designs only, never photos</span>'; sc.append(h2);
+  const h2 = document.createElement('div'); h2.className = 'feed-h'; h2.innerHTML = `<h3>From the community</h3><span>${feedLoading ? 'Loading new looks\u2026' : feedError ? 'Offline \u00b7 showing saved looks' : 'Designs only, never photos'}</span>`; sc.append(h2);
   const grid = document.createElement('div'); grid.className = 'look-grid';
   const looks = allLooks().filter(p => S.feedFilter === 'All' || styleOf(p.look) === S.feedFilter);
   if (!looks.length) grid.innerHTML = '<p class="empty" style="grid-column:1/-1">No looks in this style yet. Make one and post it!</p>';
@@ -545,13 +568,13 @@ $('#lookRemix').addEventListener('click', () => remix(S.detail));
 $('#lookBack').addEventListener('click', () => history.back());
 $('#lookMore').addEventListener('click', () => openSheet('menuSheet'));
 $('#menuCancel').addEventListener('click', () => closeSheet());
-$('#menuReport').addEventListener('click', () => { const r = store.get('reported', []); r.push(S.detail.id); store.set('reported', r); closeSheet(); toast('Thanks. We’ll review it, and it’s hidden for you.'); renderFeed(); show('feed'); });
+$('#menuReport').addEventListener('click', () => { if (S.detail.rid) cloud.reportLook(S.detail.rid); const r = store.get('reported', []); r.push(S.detail.id); store.set('reported', r); closeSheet(); toast('Thanks. We’ll review it, and it’s hidden for you.'); renderFeed(); show('feed'); });
 $('#menuHide').addEventListener('click', () => { const h = store.get('hidden', []); h.push(S.detail.nick); store.set('hidden', h); closeSheet(); toast(`Looks from ${S.detail.nick} are hidden`); renderFeed(); show('feed'); });
 
 // ---------- settings ----------
 $('#themeSeg').addEventListener('click', e => { const b = e.target.closest('[data-theme]'); if (!b) return; store.set('theme', b.dataset.theme); applyTheme(); });
 $('#settingsDone').addEventListener('click', () => closeSheet());
-$('#btnResetFeed').addEventListener('click', () => { store.set('posts', []); store.set('hidden', []); store.set('reported', []); toast('Cleared'); });
+$('#btnResetFeed').addEventListener('click', () => { store.set('posts', []); store.set('hidden', []); store.set('reported', []); toast('Hidden looks are back'); });
 let deferredInstall = null;
 window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferredInstall = e; $('#btnInstall').hidden = false; });
 $('#btnInstall').addEventListener('click', async () => { if (!deferredInstall) return; deferredInstall.prompt(); await deferredInstall.userChoice; deferredInstall = null; $('#btnInstall').hidden = true; });
@@ -560,7 +583,7 @@ $('#btnInstall').addEventListener('click', async () => { if (!deferredInstall) r
 $('#btnSettings').innerHTML = I.gear; $('#btnFeed').innerHTML = I.feed; $('#btnFlip').innerHTML = I.flip;
 applyTheme(); renderCamControls();
 history.replaceState({ s: 'camera' }, '');
-document.addEventListener('visibilitychange', () => { if (!document.hidden && S.screen === 'camera') startCamera(); });
+document.addEventListener('visibilitychange', () => { if (!document.hidden && S.screen === 'camera') startCamera(); if (!document.hidden && S.screen === 'feed') refreshFeed(); });
 Promise.all(Object.values(FONTS).map(f => document.fonts.load(`${f.style || 'normal'} ${f.weight} 40px "${f.family}"`).catch(() => { }))).then(() => { if (S.screen === 'studio') schedulePreview(); if (S.screen === 'feed') renderFeed(); });
 startCamera();
 if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => { });
