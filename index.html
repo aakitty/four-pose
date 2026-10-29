@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<title>Four Poses</title>
+<meta name="description" content="A free photobooth in your pocket. Step in, strike four poses.">
+<meta name="theme-color" content="#FFF4DC" id="themeColor">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default" id="appleBar">
+<meta name="apple-mobile-web-app-title" content="Four Poses">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div id="app">
+
+  <!-- CAMERA -->
+  <section class="screen active" id="camera" aria-label="Camera">
+    <header class="cam-top">
+      <div class="sign" aria-label="Four Poses"><span>FOUR POSES</span><i class="spark"></i></div>
+      <button class="icon-btn ghost" id="btnSettings" aria-label="Settings"></button>
+    </header>
+    <div class="cam-controls">
+      <button class="ctl" id="btnFlash" aria-label="Flash"></button>
+      <button class="ctl" id="btnRing" aria-label="Ring light"></button>
+      <div class="seg" role="tablist" aria-label="Layout">
+        <button role="tab" data-layout="strip" class="on">Strip</button>
+        <button role="tab" data-layout="grid">2×2</button>
+      </div>
+      <button class="ctl wide" id="btnTimer" aria-label="Timer"></button>
+    </div>
+    <button class="ring-chip" id="ringChip" hidden></button>
+    <div class="vf-wrap" id="vfWrap">
+      <div class="vf" id="vf">
+        <video id="video" playsinline muted autoplay></video>
+        <div class="vf-guide"></div>
+        <div class="pill dark shot" id="shotPill">Shot 1 of 4</div>
+        <div class="countdown" id="countdown"></div>
+        <div class="cam-msg" id="camMsg" hidden>
+          <p class="cam-msg-title">Let's get you in the booth</p>
+          <p class="cam-msg-body" id="camMsgBody">Four Poses needs your camera to take photos. Nothing is uploaded; your photos stay on your phone.</p>
+          <button class="btn primary" id="btnAllowCam">Allow camera</button>
+        </div>
+      </div>
+    </div>
+    <div class="progress" id="progress"></div>
+    <div class="cam-bottom">
+      <button class="side-btn" id="btnFeed" aria-label="Open feed"></button>
+      <button class="shutter" id="btnShutter" aria-label="Take four photos"><span></span></button>
+      <button class="side-btn round" id="btnFlip" aria-label="Flip camera"></button>
+    </div>
+  </section>
+
+  <!-- REVIEW -->
+  <section class="screen" id="review" aria-label="Review">
+    <header class="bar">
+      <button class="link" id="revBack">‹ Back</button>
+      <h1 class="title" id="revTitle">Review</h1>
+      <button class="link strong" id="revSelect">Select</button>
+    </header>
+    <p class="hint" id="revHint">Tap a photo to retake just that shot</p>
+    <div class="rev-grid" id="revGrid"></div>
+    <p class="hint small" id="revNote" hidden>Saved as normal photos, without the strip. You can still make your strip after.</p>
+    <div class="bottom-action"><button class="btn primary block" id="revDone">Done</button></div>
+  </section>
+
+  <!-- STUDIO -->
+  <section class="screen" id="studio" aria-label="Edit">
+    <header class="bar">
+      <button class="link" id="stBack">‹ Back</button>
+      <h1 class="title">Edit</h1>
+      <button class="btn primary small" id="stSave">Save</button>
+    </header>
+    <div class="preview-area" id="previewArea">
+      <canvas id="preview" aria-label="Strip preview"></canvas>
+      <p class="live" id="liveLabel"></p>
+    </div>
+    <div class="tool-sheet" id="toolSheet" aria-hidden="true">
+      <div class="handle"></div>
+      <div class="sheet-head"><h2 id="toolTitle">Templates</h2><button class="btn dark small" id="toolDone">Done</button></div>
+      <div class="sheet-body" id="toolBody"></div>
+    </div>
+    <nav class="toolbar" id="toolbar"></nav>
+  </section>
+
+  <!-- FEED -->
+  <section class="screen" id="feed" aria-label="Feed">
+    <header class="bar">
+      <button class="link" id="feedBack">‹ Camera</button>
+      <h1 class="title">Feed</h1>
+      <span class="bar-spacer"></span>
+    </header>
+    <div class="chips" id="feedChips"></div>
+    <div class="feed-scroll" id="feedScroll"></div>
+  </section>
+
+  <!-- LOOK DETAIL -->
+  <section class="screen" id="look" aria-label="Look">
+    <header class="bar">
+      <button class="link" id="lookBack">‹ Feed</button>
+      <h1 class="title">Look</h1>
+      <button class="icon-btn" id="lookMore" aria-label="More options"></button>
+    </header>
+    <div class="look-scroll">
+      <div class="look-preview"><canvas id="lookCanvas"></canvas></div>
+      <div class="byline"><span id="lookBy"></span><span class="pill outline" id="lookStyle"></span></div>
+      <dl class="config" id="lookConfig"></dl>
+    </div>
+    <div class="bottom-action"><button class="btn primary block" id="lookRemix">Remix this look</button></div>
+  </section>
+
+</div>
+
+<!-- sheets & overlays -->
+<div class="scrim" id="scrim" hidden></div>
+
+<div class="sheet" id="ringSheet" aria-hidden="true">
+  <div class="handle"></div>
+  <div class="sheet-head"><div><h2>Ring light</h2><p class="sub">Lights up the screen around the camera for dark rooms</p></div><label class="switch"><input type="checkbox" id="ringOn"><span></span></label></div>
+  <div class="presets" id="ringPresets"></div>
+  <p class="label">Custom colour</p>
+  <div class="hue-row"><input type="range" id="ringHue" min="0" max="360" value="330" aria-label="Hue"><span class="hue-swatch" id="ringSwatch"></span></div>
+  <div class="row-between"><p class="label">Brightness</p><p class="label muted" id="ringBriVal">100%</p></div>
+  <input type="range" id="ringBri" min="40" max="100" value="100" aria-label="Brightness">
+  <p class="sub tip">Tip: turn your phone's brightness all the way up for the best glow.</p>
+  <button class="btn primary block" id="ringDone">Done</button>
+</div>
+
+<div class="sheet" id="savedSheet" aria-hidden="true">
+  <div class="handle"></div>
+  <div class="saved-head"><span class="dot-ok"></span><h2 id="savedTitle">Your strip is ready</h2></div>
+  <p class="sub" id="savedSub">Save it to your photos or share it straight to your story.</p>
+  <div class="share-row" id="shareRow"></div>
+  <div class="post-card" id="btnPostLook"><div><p class="strong">Post this look to the feed</p><p class="sub">Only the design is shared, never your photos</p></div><span class="chev">›</span></div>
+  <button class="btn outline block" id="btnShootAgain">Shoot again</button>
+</div>
+
+<div class="sheet" id="postSheet" aria-hidden="true">
+  <div class="handle"></div>
+  <div class="sheet-head"><h2>Post a look</h2><button class="link" id="postCancel">Cancel</button></div>
+  <div class="post-grid">
+    <canvas id="postCanvas"></canvas>
+    <div class="post-fields">
+      <label class="label" for="postNick">Nickname</label>
+      <input class="input" id="postNick" maxlength="20" placeholder="@yourname">
+      <label class="check-row"><input type="checkbox" id="postKeepText" checked> <span>Include my caption</span></label>
+      <p class="sub">Your photos never leave your phone. Only the template, colours, fonts and filter are posted. Be kind: posts with rude names or text get removed.</p>
+    </div>
+  </div>
+  <button class="btn primary block" id="postGo">Post look</button>
+</div>
+
+<div class="sheet" id="settingsSheet" aria-hidden="true">
+  <div class="handle"></div>
+  <div class="sheet-head"><h2>Settings</h2><button class="btn dark small" id="settingsDone">Done</button></div>
+  <p class="label">Appearance</p>
+  <div class="seg full" id="themeSeg"><button data-theme="system">System</button><button data-theme="light">Light</button><button data-theme="dark">Dark</button></div>
+  <p class="label">Install</p>
+  <p class="sub" id="installTip">On iPhone: tap Share, then "Add to Home Screen". On Android: tap ⋮, then "Install app".</p>
+  <button class="btn outline block" id="btnInstall" hidden>Install Four Poses</button>
+  <p class="label">About</p>
+  <p class="sub">Four Poses is free, with no sign-up. Photos are processed on your phone and never uploaded. Looks you post are stored on this device in this version.</p>
+  <button class="btn outline block" id="btnResetFeed">Clear my posted looks</button>
+</div>
+
+<div class="sheet" id="menuSheet" aria-hidden="true">
+  <div class="handle"></div>
+  <button class="menu-item" id="menuReport">Report this look</button>
+  <button class="menu-item" id="menuHide">Hide looks from this nickname</button>
+  <button class="menu-item muted" id="menuCancel">Cancel</button>
+</div>
+
+<div class="dialog" id="dialog" hidden><div class="dialog-card"><p id="dialogText"></p><div class="dialog-actions"><button class="btn outline" id="dialogNo">Keep editing</button><button class="btn primary" id="dialogYes">Discard</button></div></div></div>
+
+<div class="flash" id="flash"></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<script type="module" src="js/app.js"></script>
+</body>
+</html>
