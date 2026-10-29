@@ -210,7 +210,7 @@ export function renderLook(canvas, look, shots, { scale = 1, empty = false } = {
   const radius = fr ? fr.radius : 0;
   L.slots.forEach((s, i) => {
     ctx.save();
-    if (fr && fr.width) { ctx.fillStyle = fr.color; rr(ctx, s.x - fr.width, s.y - fr.width, s.w + fr.width * 2, s.h + fr.width * 2, radius + fr.width); ctx.fill(); }
+    // no border around photos: they sit straight on the strip background
     rr(ctx, s.x, s.y, s.w, s.h, radius); ctx.clip();
     const img = shots && shots[i];
     if (img && !empty) drawCover(ctx, img, s.x, s.y, s.w, s.h);
