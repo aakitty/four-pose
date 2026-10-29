@@ -4,7 +4,8 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config.js';
 import { TEMPLATES, FILTERS, FONTS, BORDER_PATTERNS, THICKNESS, defaultLook } from './render.js';
 
 export const enabled = !!(SUPABASE_URL && SUPABASE_ANON_KEY);
-const H = { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}`, 'Content-Type': 'application/json' };
+// Works with both the legacy anon key (a JWT) and the newer sb_publishable_ key.
+const H = { apikey: SUPABASE_ANON_KEY, 'Content-Type': 'application/json', ...(SUPABASE_ANON_KEY.startsWith('eyJ') ? { Authorization: `Bearer ${SUPABASE_ANON_KEY}` } : {}) };
 const base = SUPABASE_URL.replace(/\/$/, '') + '/rest/v1';
 
 const HEXC = /^#[0-9a-fA-F]{6}$/;
