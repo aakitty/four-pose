@@ -25,7 +25,7 @@ const I = {
   share: sv('<path d="M12 3v13M7 8l5-5 5 5M5 14v5a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-5"/>'),
   sticker: sv('<path d="M14 3H7a4 4 0 0 0-4 4v10a4 4 0 0 0 4 4h7l7-7V7a4 4 0 0 0-4-4z"/><path d="M14 21v-3a4 4 0 0 1 4-4h3"/><path d="M8.5 13.5c1 1.2 3.5 1.4 5 0"/><circle cx="9" cy="9.5" r="1" fill="currentColor"/><circle cx="14" cy="9.5" r="1" fill="currentColor"/>'),
   backdrop: sv('<rect x="3" y="3" width="18" height="18" rx="2"/><rect x="9" y="6" width="6" height="12" rx="1"/><path d="M3 15l4-3 3 2"/>'),
-  strips: sv('<rect x="4" y="2" width="7" height="20" rx="1.5"/><rect x="13" y="2" width="7" height="20" rx="1.5"/><path d="M4 7.5h7M4 12.5h7M4 17h7M13 7.5h7M13 12.5h7M13 17h7"/>'),
+  strips: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round"><rect x="7.6" y="1" width="8.8" height="22" rx="1.2"/><rect x="9.4" y="2.9" width="5.2" height="3.6" rx=".5"/><rect x="9.4" y="7.9" width="5.2" height="3.6" rx=".5"/><rect x="9.4" y="12.9" width="5.2" height="3.6" rx=".5"/><path d="M10.6 19.7h2.8"/></svg>',
   trash: sv('<path d="M4 7h16M10 11v6M14 11v6M6 7l1 13a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1l1-13M9 7V4h6v3"/>'),
   print: sv('<path d="M7 8V3h10v5M7 17H5a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="7" y="14" width="10" height="7" rx="1"/>'),
 };

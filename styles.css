@@ -347,7 +347,8 @@ input[type=range] { width: 100%; accent-color: var(--primary); height: 28px; }
 .tool-sheet .sheet-body { overflow-x: hidden; touch-action: pan-y; overscroll-behavior: contain; }
 .stk-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); }
 .bd-grid, .tpl-grid, .flt-grid, .font-row, .pat-row { min-width: 0; }
-.cam-top .icon-btn.left { left: 12px; right: auto; }
+.cam-top .icon-btn.left { left: 10px; right: auto; width: 46px; height: 46px; top: 11px; }
+.cam-top .icon-btn.left svg { width: 36px; height: 36px; }
 /* My strips */
 .strips-scroll { flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; padding: 4px 16px 24px; }
 .strips-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px 10px; }
