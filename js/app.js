@@ -1,6 +1,7 @@
-import { TEMPLATES, FILTERS, FONTS, STYLES, BORDER_COLORS, TEXT_COLORS, BORDER_PATTERNS, CAPSPACE_LABEL, CAPTURE_ASPECT, BACKDROPS, backdropThumb, renderScene, sceneLayout, renderA4, jpegToPdf, MM, defaultLook, layoutFor, renderLook, applyFilter, digicamFlash, downscale, formatDate } from './render.js';
+import { TEMPLATES, FILTERS, FONTS, STYLES, BORDER_COLORS, TEXT_COLORS, BORDER_PATTERNS, CAPSPACE_LABEL, CAPTURE_ASPECT, BACKDROPS, backdropThumb, renderScene, sceneLayout, renderA4, renderA4Sheet, A4_UNITS, jpegToPdf, MM, defaultLook, layoutFor, renderLook, applyFilter, digicamFlash, downscale, formatDate } from './render.js';
 import * as cloud from './cloud.js';
 import { STICKERS, STICKER_KEYS, stickerSVG } from './stickers.js';
+import * as lib from './library.js';
 
 // ---------- icons ----------
 const sv = (p, extra = '') => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" ${extra}>${p}</svg>`;
@@ -24,6 +25,8 @@ const I = {
   share: sv('<path d="M12 3v13M7 8l5-5 5 5M5 14v5a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-5"/>'),
   sticker: sv('<path d="M14 3H7a4 4 0 0 0-4 4v10a4 4 0 0 0 4 4h7l7-7V7a4 4 0 0 0-4-4z"/><path d="M14 21v-3a4 4 0 0 1 4-4h3"/><path d="M8.5 13.5c1 1.2 3.5 1.4 5 0"/><circle cx="9" cy="9.5" r="1" fill="currentColor"/><circle cx="14" cy="9.5" r="1" fill="currentColor"/>'),
   backdrop: sv('<rect x="3" y="3" width="18" height="18" rx="2"/><rect x="9" y="6" width="6" height="12" rx="1"/><path d="M3 15l4-3 3 2"/>'),
+  strips: sv('<rect x="4" y="2" width="7" height="20" rx="1.5"/><rect x="13" y="2" width="7" height="20" rx="1.5"/><path d="M4 7.5h7M4 12.5h7M4 17h7M13 7.5h7M13 12.5h7M13 17h7"/>'),
+  trash: sv('<path d="M4 7h16M10 11v6M14 11v6M6 7l1 13a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1l1-13M9 7V4h6v3"/>'),
   print: sv('<path d="M7 8V3h10v5M7 17H5a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="7" y="14" width="10" height="7" rx="1"/>'),
 };
 
@@ -265,7 +268,7 @@ $('#revGrid').addEventListener('click', e => {
 $('#revSelect').addEventListener('click', () => { S.selecting = !S.selecting; S.selected = new Set(); renderReview(); });
 $('#revBack').addEventListener('click', () => confirmDiscard());
 function confirmDiscard() {
-  $('#dialogText').textContent = 'Discard these four photos?'; $('#dialog').hidden = false;
+  resetDialog(); $('#dialogText').textContent = 'Discard these four photos?'; $('#dialog').hidden = false;
   $('#dialogYes').onclick = () => { $('#dialog').hidden = true; S.shots = [null, null, null, null]; S.small = [null, null, null, null]; S.selecting = false; show('camera'); renderProgress(); };
   $('#dialogNo').onclick = () => { $('#dialog').hidden = true; };
 }
@@ -394,9 +397,9 @@ function renderTool() {
       <p class="label">Colour</p>${colorPicker('tc', l.textColor, TEXT_COLORS)}
       <div class="row-between" style="margin-top:16px"><div><p class="label" style="margin:0">Date stamp</p><p class="sub">Adds today's date like an old film camera</p></div><label class="switch"><input type="checkbox" id="dateOn" ${l.dateStamp ? 'checked' : ''}><span></span></label></div>`;
   } else if (S.tool === 'border') {
-    body.innerHTML = `<p class="label" style="margin-top:4px">Colour</p>${colorPicker('bc', l.border.color, BORDER_COLORS)}
-      <p class="label">Pattern</p><div class="pat-row" id="patRow"></div>
-      <p class="label">Thickness</p><div class="seg full mini">${['S', 'M', 'L'].map(t => `<button class="${l.border.thickness === t ? 'on' : ''}" data-th="${t}">${{ S: 'Thin', M: 'Medium', L: 'Thick' }[t]}</button>`).join('')}</div>`;
+    body.innerHTML = `<p class="label" style="margin-top:4px">Thickness</p><div class="seg full mini">${['S', 'M', 'L'].map(t => `<button class="${l.border.thickness === t ? 'on' : ''}" data-th="${t}">${{ S: 'Thin', M: 'Medium', L: 'Thick' }[t]}</button>`).join('')}</div>
+      <p class="label">Colour</p>${colorPicker('bc', l.border.color, BORDER_COLORS)}
+      <p class="label">Pattern</p><div class="pat-row" id="patRow"></div>`;
     Object.entries(BORDER_PATTERNS).forEach(([id, label]) => {
       const b = document.createElement('button'); b.className = 'pat' + (l.border.pattern === id ? ' on' : ''); b.dataset.pat = id;
       const c = document.createElement('canvas'); c.width = c.height = 120;
@@ -542,6 +545,7 @@ $('#stSave').addEventListener('click', () => {
   const { caption, stickers, ...rest } = S.look; store.set('last', { ...rest, caption, stickers: [] });
   closeTool(); S.stkSel = null; renderStickerLayer();
   S.exports = {}; S.fmt = S.look.backdrop.id !== 'none' ? 'story' : 'strip';
+  keepInLibrary();
   const small = document.createElement('canvas');
   renderLook(small, S.look, [0, 1, 2, 3].map(i => S.small[i] ? filtered(i) : null), { scale: S.look.layout === 'grid' ? 0.6 : 0.8 });
   printAnimation(small.toDataURL('image/jpeg', 0.88), openSaved);
@@ -567,6 +571,16 @@ function renderSaved() {
   const btns = S.fmt === 'a4' ? [['save', 'Save PDF', I.download], ['print', 'Print', I.print], ['more', 'Share', I.share]] : [['save', 'Save', I.download], ['insta', 'Instagram', I.insta], ['tiktok', 'TikTok', I.tiktok], ['more', 'More', I.share]];
   $('#shareRow').style.gridTemplateColumns = `repeat(${btns.length}, 1fr)`;
   $('#shareRow').innerHTML = btns.map(([id, n, ic]) => `<button class="share-btn" data-share="${id}"><i>${ic}</i>${n}</button>`).join('');
+}
+// every saved strip goes to My strips (once per version of the edit)
+function keepInLibrary() {
+  const key = S.version + '|' + JSON.stringify(S.look);
+  if (S.libKey === key) return; S.libKey = key;
+  try {
+    const file = makeExport('strip');
+    const t = document.createElement('canvas'); renderLook(t, S.look, [0, 1, 2, 3].map(i => S.small[i] ? filtered(i) : null), { scale: 360 / 1500 });
+    lib.addStrip({ id: 's' + Date.now(), ts: Date.now(), layout: S.look.layout, template: S.look.template, caption: S.look.caption || '', full: file, thumb: t.toDataURL('image/jpeg', 0.85) }).catch(() => toast('Couldn\u2019t keep a copy in My strips (storage full?)'));
+  } catch { }
 }
 function openSaved() { $('#savedTitle').textContent = 'Your strip is ready'; renderSaved(); openSheet('savedSheet'); }
 $('#fmtSeg').addEventListener('click', e => { const b = e.target.closest('[data-fmt]'); if (!b) return; S.fmt = b.dataset.fmt; renderSaved(); });
@@ -595,6 +609,96 @@ function printAnimation(src, done) {
 
 $('#btnShootAgain').addEventListener('click', () => { closeSheet(); S.shots = [null, null, null, null]; S.small = [null, null, null, null]; S.version++; show('camera'); renderProgress(); });
 $('#btnPostLook').addEventListener('click', () => openPost());
+
+// ---------- My strips ----------
+const MS = { items: [], selecting: false, sel: [], fill: true, file: null, job: 0 };
+const fmtDay = ts => new Date(ts).toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
+const units = ids => ids.reduce((n, id) => n + (A4_UNITS[MS.items.find(x => x.id === id)?.layout] || 1), 0);
+async function openStrips() {
+  MS.selecting = false; MS.sel = []; show('strips');
+  try { MS.items = await lib.listStrips(); } catch { MS.items = []; }
+  renderStrips();
+}
+function renderStrips() {
+  const sc = $('#stripsScroll'); const n = MS.items.length;
+  $('#stripsSelect').textContent = MS.selecting ? 'Cancel' : 'Select'; $('#stripsSelect').style.visibility = n ? '' : 'hidden';
+  $('#stripsTitle').textContent = MS.selecting ? `${MS.sel.length} selected` : 'MY STRIPS';
+  $('#stripsHint').textContent = MS.selecting ? 'Pick up to 4 strips (a 2\u00d72 print takes 2 spaces) for one A4 page' : (n ? `${n} saved \u00b7 kept on this phone \u00b7 tap Select to print` : 'Everything you save shows up here');
+  $('#stripsAction').hidden = !MS.selecting;
+  const u = units(MS.sel); $('#stripsPrint').disabled = !MS.sel.length; $('#stripsPrint').textContent = MS.sel.length ? `Lay out for A4 print (${u}/4)` : 'Pick strips to print';
+  if (!n) { sc.innerHTML = `<div class="strips-empty"><b>No strips yet</b>Take four poses and tap Save. Every strip you save is kept here so you can print them later.</div>`; return; }
+  sc.innerHTML = (MS.selecting ? `<div class="cap-bar" aria-label="${u} of 4 spaces used">${[0, 1, 2, 3].map(i => `<i class="${i < u ? 'on' : ''}"></i>`).join('')}</div>` : '') +
+    `<div class="strips-grid ${MS.selecting ? 'selecting' : ''}">${MS.items.map(it => { const k = MS.sel.indexOf(it.id); return `<button class="sg-card ${k >= 0 ? 'sel' : ''}" data-id="${it.id}"><span class="sg-art"><img src="${it.thumb}" alt=""><span class="sg-num">${k >= 0 ? k + 1 : ''}</span></span><span class="sg-meta"><b>${escapeHTML(it.caption || (it.layout === 'grid' ? '2\u00d72 print' : 'Strip'))}</b>${fmtDay(it.ts)} \u00b7 ${it.layout === 'grid' ? '10\u00d715' : '15\u00d75'} cm</span></button>`; }).join('')}</div>`;
+}
+$('#btnStrips').addEventListener('click', () => { if (!S.capturing) openStrips(); });
+$('#btnMyStrips').addEventListener('click', () => { closeSheet(); openStrips(); });
+$('#stripsBack').addEventListener('click', () => history.back());
+$('#stripsSelect').addEventListener('click', () => { MS.selecting = !MS.selecting; MS.sel = []; renderStrips(); });
+$('#stripsScroll').addEventListener('click', e => {
+  const c = e.target.closest('.sg-card'); if (!c) return; const id = c.dataset.id; const it = MS.items.find(x => x.id === id); if (!it) return;
+  if (!MS.selecting) { openStripSheet(it); return; }
+  const k = MS.sel.indexOf(id);
+  if (k >= 0) MS.sel.splice(k, 1);
+  else if (units(MS.sel) + (A4_UNITS[it.layout] || 1) > 4) { toast(MS.sel.length ? 'That\u2019s a full page: 4 strips, or 2 big prints' : 'That won\u2019t fit on one page'); return; }
+  else MS.sel.push(id);
+  renderStrips();
+});
+function openStripSheet(it) {
+  MS.open = it; $('#stripSheetTitle').textContent = it.caption || (it.layout === 'grid' ? '2\u00d72 print' : 'Strip');
+  $('#stripSheetImg').src = it.thumb; const url = URL.createObjectURL(it.full); $('#stripSheetImg').onload = null;
+  const im = new Image(); im.onload = () => { $('#stripSheetImg').src = url; }; im.src = url;
+  $('#stripSheetRow').style.gridTemplateColumns = 'repeat(4, 1fr)';
+  $('#stripSheetRow').innerHTML = [['save', 'Save', I.download], ['share', 'Share', I.share], ['print', 'Print', I.print], ['delete', 'Delete', I.trash]].map(([id, n, ic]) => `<button class="share-btn" data-act="${id}"><i>${ic}</i>${n}</button>`).join('');
+  openSheet('stripSheet');
+}
+$('#stripSheetClose').addEventListener('click', () => closeSheet());
+$('#stripSheetRow').addEventListener('click', async e => {
+  const b = e.target.closest('[data-act]'); const it = MS.open; if (!b || !it) return;
+  const file = new File([it.full], `four-poses-${it.layout === 'grid' ? '10x15cm' : '15x5cm'}-${it.ts}.jpg`, { type: 'image/jpeg' });
+  if (b.dataset.act === 'save') return saveFiles([file], isIOS ? 'Ready to save' : 'Saved to your gallery');
+  if (b.dataset.act === 'share') { if (navigator.canShare?.({ files: [file] })) { try { await navigator.share({ files: [file], title: 'Four Poses' }); } catch { } } else { download(file); toast('Saved. Share it from your gallery.'); } return; }
+  if (b.dataset.act === 'print') { closeSheet(); MS.sel = [it.id]; MS.fill = true; openLayout(); return; }
+  if (b.dataset.act === 'delete') {
+    $('#dialogText').textContent = 'Delete this strip from My strips?'; $('#dialogYes').textContent = 'Delete'; $('#dialogNo').textContent = 'Keep it'; $('#dialog').hidden = false;
+    $('#dialogYes').onclick = async () => { $('#dialog').hidden = true; resetDialog(); await lib.deleteStrip(it.id).catch(() => { }); closeSheet(); MS.items = MS.items.filter(x => x.id !== it.id); renderStrips(); toast('Deleted'); };
+    $('#dialogNo').onclick = () => { $('#dialog').hidden = true; resetDialog(); };
+  }
+});
+function resetDialog() { $('#dialogYes').textContent = 'Discard'; $('#dialogNo').textContent = 'Keep editing'; }
+$('#stripsPrint').addEventListener('click', () => { if (MS.sel.length) openLayout(); });
+function layoutItems() {
+  const chosen = MS.sel.map(id => MS.items.find(x => x.id === id)).filter(Boolean);
+  if (!MS.fill) return chosen;
+  const out = []; let u = 0, i = 0, misses = 0;
+  while (u < 4 && misses < chosen.length) { const it = chosen[i % chosen.length]; const need = A4_UNITS[it.layout] || 1; if (u + need <= 4) { out.push(it); u += need; misses = 0; } else misses++; i++; }
+  return out;
+}
+async function openLayout() {
+  const job = ++MS.job; MS.file = null;
+  const u = units(MS.sel); $('#layoutFillRow').hidden = u >= 4; $('#layoutFill').checked = MS.fill;
+  $('#layoutRow').style.gridTemplateColumns = 'repeat(3, 1fr)';
+  $('#layoutRow').innerHTML = [['save', 'Save PDF', I.download], ['print', 'Print', I.print], ['share', 'Share', I.share]].map(([id, n, ic]) => `<button class="share-btn" data-lay="${id}" disabled><i>${ic}</i>${n}</button>`).join('');
+  $('#layoutLoading').hidden = false; if (sheetOpen !== 'layoutSheet') openSheet('layoutSheet');
+  const items = layoutItems();
+  $('#layoutSub').textContent = `${items.length} on one landscape A4 page, with cut marks`;
+  try {
+    const imgs = await Promise.all(items.map(it => createImageBitmap(it.full)));
+    if (job !== MS.job) return;
+    const big = document.createElement('canvas');
+    renderA4Sheet(big, items.map((it, k) => ({ img: imgs[k], layout: it.layout })));
+    MS.file = new File([jpegToPdf(big.toDataURL('image/jpeg', 0.92), big.width, big.height)], `four-poses-print-A4-${Date.now()}.pdf`, { type: 'application/pdf' });
+    const pc = $('#layoutCanvas'); pc.width = 1052; pc.height = 744; pc.getContext('2d').drawImage(big, 0, 0, pc.width, pc.height);
+    $('#layoutLoading').hidden = true; $$('#layoutRow [data-lay]').forEach(b => b.disabled = false);
+  } catch { if (job === MS.job) { $('#layoutLoading').textContent = 'Couldn\u2019t lay these out. Try again.'; } }
+}
+$('#layoutFill').addEventListener('change', e => { MS.fill = e.target.checked; openLayout(); });
+$('#layoutClose').addEventListener('click', () => closeSheet());
+$('#layoutRow').addEventListener('click', async e => {
+  const b = e.target.closest('[data-lay]'); if (!b || !MS.file) return; const files = [MS.file];
+  if (b.dataset.lay === 'print') { const w = window.open(URL.createObjectURL(MS.file), '_blank'); if (!w) download(MS.file); toast('Opened the A4 page. Print at 100% / actual size.', 3200); return; }
+  if (b.dataset.lay === 'save') return saveFiles(files, 'PDF saved');
+  if (navigator.canShare?.({ files })) { try { await navigator.share({ files, title: 'Four Poses print' }); } catch { } } else { download(MS.file); toast('PDF saved'); }
+});
 
 // ---------- post a look ----------
 function openPost() {
@@ -734,7 +838,7 @@ window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferr
 $('#btnInstall').addEventListener('click', async () => { if (!deferredInstall) return; deferredInstall.prompt(); await deferredInstall.userChoice; deferredInstall = null; $('#btnInstall').hidden = true; });
 
 // ---------- boot ----------
-$('#btnSettings').innerHTML = I.gear; $('#btnFeed').innerHTML = I.feed; $('#btnFlip').innerHTML = I.flip;
+$('#btnSettings').innerHTML = I.gear; $('#btnStrips').innerHTML = I.strips; $('#btnFeed').innerHTML = I.feed; $('#btnFlip').innerHTML = I.flip;
 applyTheme(); renderCamControls();
 // curtain opens when the app starts
 (() => {

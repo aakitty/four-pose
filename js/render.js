@@ -135,45 +135,49 @@ function flower(ctx, cx, cy, s, petal, mid) { ctx.fillStyle = petal; for (let i 
 function lum(hex) { const n = parseInt(hex.slice(1), 16); const r = n >> 16 & 255, g = n >> 8 & 255, b = n & 255; return (0.299 * r + 0.587 * g + 0.114 * b) / 255; }
 const shade = (hex, k) => { const n = parseInt(hex.slice(1), 16); const f = v => Math.max(0, Math.min(255, Math.round(v * k))); return '#' + [n >> 16 & 255, n >> 8 & 255, n & 255].map(v => f(v).toString(16).padStart(2, '0')).join(''); };
 
+// Patterns are sized for a 5 cm wide strip and centred so both edges match.
 function paintPattern(ctx, type, W, H, base, accent) {
   ctx.fillStyle = base; ctx.fillRect(0, 0, W, H);
   const r = rng(7);
-  if (type === 'polka') { ctx.fillStyle = accent; for (let y = 0, row = 0; y < H + 40; y += 46, row++) for (let x = row % 2 ? 23 : 0; x < W + 40; x += 46) { ctx.beginPath(); ctx.arc(x, y, 9, 0, Math.PI * 2); ctx.fill(); } }
-  else if (type === 'checker') { ctx.fillStyle = accent; const s = 40; for (let y = 0; y < H; y += s) for (let x = 0; x < W; x += s) if (((x + y) / s) % 2 === 0) ctx.fillRect(x, y, s, s); }
-  else if (type === 'hearts') { ctx.fillStyle = accent; ctx.globalAlpha = 0.85; for (let y = 20, row = 0; y < H + 40; y += 58, row++) for (let x = row % 2 ? 29 : 0; x < W + 40; x += 58) { heartPath(ctx, x, y, 14); ctx.fill(); } ctx.globalAlpha = 1; }
-  else if (type === 'cheetah') { for (let i = 0; i < (W * H) / 2600; i++) { const x = r() * W, y = r() * H, s = 6 + r() * 12; ctx.fillStyle = accent; ctx.beginPath(); ctx.ellipse(x, y, s, s * 0.75, r() * 3, 0, Math.PI * 2); ctx.fill(); ctx.fillStyle = base; ctx.beginPath(); ctx.ellipse(x, y, s * 0.45, s * 0.32, r() * 3, 0, Math.PI * 2); ctx.fill(); } }
-  else if (type === 'cherry') { for (let y = 30, row = 0; y < H + 40; y += 70, row++) for (let x = row % 2 ? 35 : 0; x < W + 40; x += 70) { ctx.strokeStyle = '#3E7D3A'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(x - 6, y); ctx.quadraticCurveTo(x, y - 22, x + 8, y - 26); ctx.moveTo(x + 8, y + 2); ctx.quadraticCurveTo(x + 8, y - 16, x + 8, y - 26); ctx.stroke(); ctx.fillStyle = accent; ctx.beginPath(); ctx.arc(x - 6, y + 6, 9, 0, 7); ctx.arc(x + 10, y + 8, 9, 0, 7); ctx.fill(); } }
-  else if (type === 'gingham') { const s = 36; ctx.fillStyle = accent; ctx.globalAlpha = 0.45; for (let x = 0; x < W; x += s * 2) ctx.fillRect(x, 0, s, H); for (let y = 0; y < H; y += s * 2) ctx.fillRect(0, y, W, s); ctx.globalAlpha = 1; }
-  else if (type === 'stripes') { ctx.fillStyle = accent; const s = 34; for (let x = 0; x < W; x += s * 2) ctx.fillRect(x, 0, s, H); }
-  else if (type === 'harlequin') { ctx.fillStyle = accent; const w = 70, h = 100; for (let y = 0, row = 0; y < H + h; y += h / 2, row++) for (let x = row % 2 ? w / 2 : 0; x < W + w; x += w) { ctx.beginPath(); ctx.moveTo(x, y - h / 2); ctx.lineTo(x + w / 2, y); ctx.lineTo(x, y + h / 2); ctx.lineTo(x - w / 2, y); ctx.closePath(); if ((row + Math.round(x / w)) % 2 === 0) ctx.fill(); } }
-  else if (type === 'stars') { ctx.fillStyle = accent; for (let i = 0; i < (W * H) / 5200; i++) { const x = r() * W, y = r() * H, s = 4 + r() * 9; star(ctx, x, y, s); ctx.fill(); } }
-  else if (type === 'grid') { ctx.strokeStyle = accent; ctx.lineWidth = 2; for (let x = 0; x < W; x += 40) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke(); } for (let y = 0; y < H; y += 40) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); } }
+  const ox = g => ((W % g) + g) / 2 % g; // centre offset for a repeat of size g
+  if (type === 'polka') { const g = 40; ctx.fillStyle = accent; for (let y = g / 2, row = 0; y < H + g; y += g * 0.87, row++) for (let x = ox(g) + (row % 2 ? g / 2 : 0) - g; x < W + g; x += g) { ctx.beginPath(); ctx.arc(x, y, 7.5, 0, Math.PI * 2); ctx.fill(); } }
+  else if (type === 'checker') { const g = 32; ctx.fillStyle = accent; const x0 = ox(g) - g; for (let y = 0, j = 0; y < H; y += g, j++) for (let x = x0, i = 0; x < W; x += g, i++) if ((i + j) % 2 === 0) ctx.fillRect(x, y, g, g); }
+  else if (type === 'hearts') { const g = 48; ctx.fillStyle = accent; for (let y = g / 2, row = 0; y < H + g; y += g * 0.8, row++) for (let x = ox(g) + (row % 2 ? g / 2 : 0) - g; x < W + g; x += g) { heartPath(ctx, x, y, 12); ctx.fill(); } }
+  else if (type === 'cheetah') { const g = 46; for (let y = g / 2, row = 0; y < H + g; y += g * 0.8, row++) for (let x = ox(g) + (row % 2 ? g / 2 : 0) - g; x < W + g; x += g) { const jx = (r() - 0.5) * 16, jy = (r() - 0.5) * 12, s = 9 + r() * 6, a = r() * 3; ctx.fillStyle = accent; ctx.beginPath(); ctx.ellipse(x + jx, y + jy, s, s * 0.78, a, 0, Math.PI * 2); ctx.fill(); ctx.fillStyle = shade(base, 0.82); ctx.beginPath(); ctx.ellipse(x + jx, y + jy, s * 0.5, s * 0.36, a, 0, Math.PI * 2); ctx.fill(); } }
+  else if (type === 'cherry') { const g = 60; for (let y = g / 2, row = 0; y < H + g; y += g * 0.85, row++) for (let x = ox(g) + (row % 2 ? g / 2 : 0) - g; x < W + g; x += g) { ctx.strokeStyle = '#3E7D3A'; ctx.lineWidth = 2.5; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(x - 6, y + 2); ctx.quadraticCurveTo(x - 2, y - 14, x + 5, y - 18); ctx.moveTo(x + 7, y + 4); ctx.quadraticCurveTo(x + 7, y - 10, x + 5, y - 18); ctx.stroke(); ctx.fillStyle = accent; ctx.beginPath(); ctx.arc(x - 6, y + 7, 7, 0, 7); ctx.fill(); ctx.beginPath(); ctx.arc(x + 8, y + 9, 7, 0, 7); ctx.fill(); ctx.fillStyle = 'rgba(255,255,255,0.7)'; ctx.beginPath(); ctx.arc(x - 8, y + 5, 2, 0, 7); ctx.arc(x + 6, y + 7, 2, 0, 7); ctx.fill(); } }
+  else if (type === 'gingham') { const g = 26; ctx.fillStyle = accent; ctx.globalAlpha = 0.42; const x0 = ox(g * 2) - g * 2; for (let x = x0; x < W; x += g * 2) ctx.fillRect(x, 0, g, H); for (let y = 0; y < H; y += g * 2) ctx.fillRect(0, y, W, g); ctx.globalAlpha = 1; }
+  else if (type === 'stripes') { const g = 24; ctx.fillStyle = accent; for (let x = ox(g * 2) - g * 2; x < W; x += g * 2) ctx.fillRect(x, 0, g, H); }
+  else if (type === 'harlequin') { ctx.fillStyle = accent; const w = 56, h = 84; for (let y = 0, row = 0; y < H + h; y += h / 2, row++) for (let x = ox(w) + (row % 2 ? w / 2 : 0) - w, i = 0; x < W + w; x += w, i++) { if ((row + i) % 2) continue; ctx.beginPath(); ctx.moveTo(x, y - h / 2); ctx.lineTo(x + w / 2, y); ctx.lineTo(x, y + h / 2); ctx.lineTo(x - w / 2, y); ctx.closePath(); ctx.fill(); } }
+  else if (type === 'stars') { const g = 52; ctx.fillStyle = accent; for (let y = g / 2, row = 0; y < H + g; y += g * 0.85, row++) for (let x = ox(g) + (row % 2 ? g / 2 : 0) - g; x < W + g; x += g) { star(ctx, x + (r() - 0.5) * 10, y + (r() - 0.5) * 10, 6 + r() * 5); ctx.fill(); } }
+  else if (type === 'grid') { ctx.strokeStyle = accent; ctx.lineWidth = 2; const g = 34; for (let x = ox(g); x < W; x += g) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke(); } for (let y = 0; y < H; y += g) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); } }
   else if (type === 'kraft') { for (let i = 0; i < (W * H) / 90; i++) { ctx.fillStyle = r() > 0.5 ? 'rgba(80,50,20,.08)' : 'rgba(255,240,210,.08)'; ctx.fillRect(r() * W, r() * H, 1 + r() * 6, 1 + r() * 2); } }
-  else if (type === 'disco') { const s = 26; for (let y = 0; y < H; y += s) for (let x = 0; x < W; x += s) { const v = 150 + Math.floor(r() * 100); ctx.fillStyle = `rgb(${v},${v},${v + 8})`; ctx.fillRect(x + 1, y + 1, s - 2, s - 2); if (r() > 0.93) { ctx.fillStyle = '#FFFFFF'; sparkle(ctx, x + s / 2, y + s / 2, 10); ctx.fill(); } } }
+  else if (type === 'disco') { const g = 22; for (let y = 0; y < H; y += g) for (let x = ox(g) - g; x < W; x += g) { const v = 150 + Math.floor(r() * 100); ctx.fillStyle = `rgb(${v},${v},${v + 8})`; ctx.fillRect(x + 1, y + 1, g - 2, g - 2); if (r() > 0.94) { ctx.fillStyle = '#FFFFFF'; sparkle(ctx, x + g / 2, y + g / 2, 9); ctx.fill(); } } }
   else if (type === 'chrome') { const g = ctx.createLinearGradient(0, 0, W, H); g.addColorStop(0, '#F2F2F5'); g.addColorStop(0.25, '#B4B4BE'); g.addColorStop(0.5, '#FAFAFC'); g.addColorStop(0.75, '#9A9AA6'); g.addColorStop(1, '#E6E6EC'); ctx.fillStyle = g; ctx.fillRect(0, 0, W, H); }
 }
 
+// Returns { base, busy }: busy = a pattern sits behind the caption area.
 function paintBackground(ctx, look, t, L) {
   const b = look.border || {};
   if (b.pattern && b.pattern !== 'none') {
-    const base = b.color || '#FFF4DC';
+    const base = b.pattern === 'cheetah' && !b.color ? '#E8B04B' : (b.color || '#FFF4DC');
     const pop = lum(base) > 0.6 ? '#C8102E' : '#FFF4DC';
-    const accent = { solid: base, cherry: '#C8102E', cheetah: '#3A2A1A', polka: pop, checker: lum(base) > 0.6 ? shade(base, 0.88) : shade(base, 1.35), gingham: pop, stripes: pop, harlequin: lum(base) > 0.6 ? shade(base, 0.82) : shade(base, 1.6), hearts: pop, stars: lum(base) > 0.6 ? '#E8B04B' : '#E8B04B' }[b.pattern];
-    if (b.pattern === 'solid') { ctx.fillStyle = base; ctx.fillRect(0, 0, L.W, L.H); }
-    else paintPattern(ctx, b.pattern, L.W, L.H, b.pattern === 'cheetah' && !b.color ? '#E8B04B' : base, accent);
-    return;
+    const accent = { solid: base, cherry: '#C8102E', cheetah: '#3A2A1A', polka: pop, checker: lum(base) > 0.6 ? shade(base, 0.86) : shade(base, 1.4), gingham: pop, stripes: pop, harlequin: lum(base) > 0.6 ? shade(base, 0.82) : shade(base, 1.6), hearts: pop, stars: '#E8B04B' }[b.pattern];
+    if (b.pattern === 'solid') { ctx.fillStyle = base; ctx.fillRect(0, 0, L.W, L.H); return { base, busy: false, custom: true }; }
+    paintPattern(ctx, b.pattern, L.W, L.H, base, accent);
+    return { base, busy: true, custom: true };
   }
   const bg = t.bg;
   const base = b.color || bg.color || '#FFF4DC';
-  if (bg.type === 'gradient' && !b.color) { const g = ctx.createLinearGradient(0, 0, 0, L.H); bg.colors.forEach((c, i) => g.addColorStop(i / (bg.colors.length - 1), c)); ctx.fillStyle = g; ctx.fillRect(0, 0, L.W, L.H); }
-  else if (bg.type === 'solid' || b.color) { ctx.fillStyle = base; ctx.fillRect(0, 0, L.W, L.H); }
-  else paintPattern(ctx, bg.type, L.W, L.H, base, bg.accent);
+  if (bg.type === 'gradient' && !b.color) { const g = ctx.createLinearGradient(0, 0, 0, L.H); bg.colors.forEach((c, i) => g.addColorStop(i / (bg.colors.length - 1), c)); ctx.fillStyle = g; ctx.fillRect(0, 0, L.W, L.H); return { base: bg.colors[bg.colors.length - 1], busy: false }; }
+  if (bg.type === 'solid' || b.color) { ctx.fillStyle = base; ctx.fillRect(0, 0, L.W, L.H); return { base, busy: false, custom: !!b.color }; }
+  paintPattern(ctx, bg.type, L.W, L.H, base, bg.accent);
+  return { base, busy: !['chrome', 'kraft'].includes(bg.type) };
 }
 
 function paintDeco(ctx, t, L, look) {
   const r = rng(42);
   const { W, H, P } = L;
-  const margin = (fn, n) => { for (let i = 0; i < n; i++) { const side = i % 4; let x, y; if (side === 0) { x = r() * W; y = r() * P * 0.7 + 4; } else if (side === 1) { x = W - r() * P * 0.7 - 4; y = r() * H; } else if (side === 2) { x = r() * P * 0.7 + 4; y = r() * H; } else { x = r() * W; y = H - r() * 60 - 10; } fn(x, y, r); } };
+  const margin = (fn, n) => { for (let i = 0; i < n; i++) { const side = i % 4; let x, y; if (side === 0) { x = r() * W; y = r() * P * 0.7 + 4; } else if (side === 1) { x = W - r() * P * 0.7 - 4; y = r() * H; } else if (side === 2) { x = r() * P * 0.7 + 4; y = r() * H; } else { x = r() < 0.5 ? r() * P * 0.7 + 4 : W - r() * P * 0.7 - 4; y = H - L.bottom + r() * (L.bottom - 10); } fn(x, y, r); } };
   const textC = look.textColor || t.text;
   if (t.deco === 'sparkles' || t.deco === 'stars') {
     ctx.fillStyle = t.decoColor || (t.deco === 'stars' ? '#FFFFFF' : '#FFF4DC');
@@ -213,7 +217,7 @@ export function renderLook(canvas, look, shots, { scale = 1, empty = false, stic
   canvas.width = Math.round(L.W * scale); canvas.height = Math.round(L.H * scale);
   const ctx = canvas.getContext('2d');
   ctx.setTransform(scale, 0, 0, scale, 0, 0);
-  paintBackground(ctx, look, t, L);
+  const bgInfo = paintBackground(ctx, look, t, L);
   paintDeco(ctx, t, L, look);
   const fr = t.frame;
   const radius = fr ? fr.radius : 0;
@@ -233,13 +237,15 @@ export function renderLook(canvas, look, shots, { scale = 1, empty = false, stic
   });
   // footer: caption space (None / Small / Medium / Large)
   const f = FONTS[look.font] || FONTS.bubble;
-  const color = look.textColor || t.text;
   const F = L.footer, fy = L.H - L.bottom;
+  const color = look.textColor || (bgInfo.custom ? (lum(bgInfo.base) > 0.55 ? '#1A1A1A' : '#FFF4DC') : t.text);
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   const cap = F ? (look.caption || '').trim() : '';
   const date = F && look.dateStamp;
   const noPattern = !look.border || look.border.pattern === 'none';
-  if (F && t.band && noPattern && !look.border?.color) { ctx.fillStyle = t.band; rr(ctx, L.P, fy + 10, L.W - 2 * L.P, F - 10 - Math.min(L.P, 26), 10); ctx.fill(); }
+  const panel = (fill) => { ctx.fillStyle = fill; rr(ctx, L.P, fy + Math.min(10, L.gap), L.W - 2 * L.P, F - Math.min(10, L.gap) - Math.min(L.P, 26), 10); ctx.fill(); };
+  if (F && t.band && noPattern && !look.border?.color) panel(t.band);
+  else if (F && bgInfo.busy) panel(bgInfo.base); // calm panel so the caption never sits on a pattern
   const spec = { S: { cap: 44, date: 20, cy: cap && date ? 0.4 : 0.47, dy: 0.78 }, M: { cap: 56, date: 26, cy: date ? 0.38 : 0.47, dy: 0.74 }, L: { cap: 84, date: 32, cy: date ? 0.4 : 0.47, dy: 0.76 } }[look.capSpace] || null;
   if (spec && cap) {
     let size = spec.cap * f.sizeK * (L.W > 600 ? 1.25 : 1);
@@ -439,26 +445,34 @@ export function renderScene(canvas, look, shots, { scale = 1, empty = false, bgI
 // A4 landscape at 300 dpi. Strips (5 × 15 cm) go 4 across, 2×2 prints (10 × 15 cm) 2 across.
 export const A4 = { W: 3508, H: 2480, DPI: 300 };
 export function renderA4(canvas, look, shots) {
+  const L = layoutFor(look); const n = look.layout === 'grid' ? 2 : 4;
+  const strip = document.createElement('canvas'); renderLook(strip, look, shots, { scale: (L.W / MM) * (A4.DPI / 25.4) / L.W });
+  return renderA4Sheet(canvas, Array.from({ length: n }, () => ({ img: strip, layout: look.layout })));
+}
+// items: [{ img (canvas/image of a strip or 2×2), layout: 'strip'|'grid' }] — up to 4 strip-widths of space.
+export const A4_UNITS = { strip: 1, grid: 2 };
+export function renderA4Sheet(canvas, items) {
   canvas.width = A4.W; canvas.height = A4.H; const ctx = canvas.getContext('2d');
   ctx.fillStyle = '#FFFFFF'; ctx.fillRect(0, 0, A4.W, A4.H);
-  const pxmm = A4.DPI / 25.4; const L = layoutFor(look);
-  const wmm = L.W / MM, hmm = L.H / MM, n = look.layout === 'grid' ? 2 : 4, gapmm = 15;
-  const w = wmm * pxmm, h = hmm * pxmm, gap = gapmm * pxmm;
-  const x0 = (A4.W - (n * w + (n - 1) * gap)) / 2, y0 = (A4.H - h) / 2;
-  const strip = document.createElement('canvas'); renderLook(strip, look, shots, { scale: w / L.W });
-  const mark = 8 * pxmm, off = 2 * pxmm;
-  ctx.strokeStyle = '#9A9A9A'; ctx.lineWidth = 2;
-  for (let i = 0; i < n; i++) {
-    const x = x0 + i * (w + gap);
-    ctx.drawImage(strip, x, y0, w, h);
+  const pxmm = A4.DPI / 25.4, gap = 15 * pxmm, h = 150 * pxmm;
+  const ws = items.map(it => (it.layout === 'grid' ? 100 : 50) * pxmm);
+  const total = ws.reduce((a, b) => a + b, 0) + gap * Math.max(0, items.length - 1);
+  const x0 = (A4.W - total) / 2, y0 = (A4.H - h) / 2; const mark = 8 * pxmm, off = 2 * pxmm;
+  ctx.imageSmoothingQuality = 'high'; ctx.strokeStyle = '#9A9A9A'; ctx.lineWidth = 2;
+  let x = x0;
+  items.forEach((it, i) => {
+    const w = ws[i]; ctx.drawImage(it.img, x, y0, w, h);
     for (const [cx, cy, dx, dy] of [[x, y0, -1, -1], [x + w, y0, 1, -1], [x, y0 + h, -1, 1], [x + w, y0 + h, 1, 1]]) {
       ctx.beginPath(); ctx.moveTo(cx + dx * off, cy); ctx.lineTo(cx + dx * (off + mark), cy); ctx.moveTo(cx, cy + dy * off); ctx.lineTo(cx, cy + dy * (off + mark)); ctx.stroke();
     }
-  }
+    x += w + gap;
+  });
   ctx.fillStyle = '#C8102E'; ctx.font = '400 54px "Bungee"'; ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
   ctx.fillText('FOUR POSES', x0, y0 - 18 * pxmm);
+  const nS = items.filter(i => i.layout !== 'grid').length, nG = items.length - nS;
+  const what = [nS ? `${nS} strip${nS > 1 ? 's' : ''} (5 × 15 cm)` : '', nG ? `${nG} 2×2 print${nG > 1 ? 's' : ''} (10 × 15 cm)` : ''].filter(Boolean).join(' + ');
   ctx.fillStyle = '#7A7A7A'; ctx.font = '500 36px "Inter"';
-  ctx.fillText(`${n} ${look.layout === 'grid' ? 'prints' : 'strips'} · ${wmm / 10} × ${hmm / 10} cm each · cut along the grey marks · print at 100% (actual size)`, x0, y0 + h + 22 * pxmm);
+  ctx.fillText(`${what} · cut along the grey marks · print at 100% (actual size)`, x0, y0 + h + 22 * pxmm);
   return canvas;
 }
 // Minimal one-page PDF around a JPEG (A4 landscape), built synchronously so it can be shared straight away.

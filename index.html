@@ -22,6 +22,7 @@
   <section class="screen active" id="camera" aria-label="Camera">
     <header class="cam-top">
       <svg class="sign" viewBox="0 0 268 76" role="img" aria-label="Four Poses" xmlns="http://www.w3.org/2000/svg"><rect y="12" width="260" height="64" rx="14" fill="#E8B04B"/><rect x="6" y="18" width="248" height="52" rx="9" fill="#C8102E"/><circle cx="18.5" cy="24.5" r="2.5" fill="#FFF4DC"/><circle cx="46.5" cy="24.5" r="2.5" fill="#FFF4DC"/><circle cx="74.5" cy="24.5" r="2.5" fill="#FFF4DC"/><circle cx="102.5" cy="24.5" r="2.5" fill="#FFF4DC"/><circle cx="130.5" cy="24.5" r="2.5" fill="#FFF4DC"/><circle cx="158.5" cy="24.5" r="2.5" fill="#FFF4DC"/><circle cx="186.5" cy="24.5" r="2.5" fill="#FFF4DC"/><circle cx="214.5" cy="24.5" r="2.5" fill="#FFF4DC"/><circle cx="242.5" cy="24.5" r="2.5" fill="#FFF4DC"/><text x="47.8" y="56.5" textLength="164.6" lengthAdjust="spacingAndGlyphs" font-family="Bungee" font-size="26.2" fill="#FFF4DC">FOUR POSES</text><path d="M256 0L258.715 9.28471L268 12L258.715 14.7153L256 24L253.285 14.7153L244 12L253.285 9.28471L256 0Z" fill="#C9C9CF"/></svg>
+      <button class="icon-btn ghost left" id="btnStrips" aria-label="My strips"></button>
       <button class="icon-btn ghost" id="btnSettings" aria-label="Settings"></button>
     </header>
     <div class="cam-controls">
@@ -99,6 +100,18 @@
     <div class="feed-scroll" id="feedScroll"></div>
   </section>
 
+  <!-- MY STRIPS -->
+  <section class="screen" id="strips" aria-label="My strips">
+    <header class="bar">
+      <button class="link" id="stripsBack">‹ Camera</button>
+      <h1 class="title" id="stripsTitle">MY STRIPS</h1>
+      <button class="link strong" id="stripsSelect">Select</button>
+    </header>
+    <p class="hint" id="stripsHint">Everything you've saved, kept on this phone</p>
+    <div class="strips-scroll" id="stripsScroll"></div>
+    <div class="bottom-action" id="stripsAction" hidden><button class="btn primary block" id="stripsPrint" disabled>Lay out for A4 print</button></div>
+  </section>
+
   <!-- LOOK DETAIL -->
   <section class="screen" id="look" aria-label="Look">
     <header class="bar">
@@ -138,7 +151,24 @@
   <p class="sub" id="savedSub">Save it to your photos or share it straight to your story.</p>
   <div class="share-row" id="shareRow"></div>
   <div class="post-card" id="btnPostLook"><div><p class="strong">Post this look to the feed</p><p class="sub">Only the design is shared, never your photos</p></div><span class="chev">›</span></div>
+  <button class="link-row" id="btnMyStrips">Saved in My strips · see all and print ›</button>
   <button class="btn outline block" id="btnShootAgain">Shoot again</button>
+</div>
+
+<div class="sheet" id="stripSheet" aria-hidden="true">
+  <div class="handle"></div>
+  <div class="sheet-head"><h2 id="stripSheetTitle">Strip</h2><button class="link" id="stripSheetClose">Close</button></div>
+  <div class="strip-view"><img id="stripSheetImg" alt="Saved strip"></div>
+  <div class="share-row" id="stripSheetRow"></div>
+</div>
+
+<div class="sheet" id="layoutSheet" aria-hidden="true">
+  <div class="handle"></div>
+  <div class="sheet-head"><div><h2>A4 print layout</h2><p class="sub" id="layoutSub">Landscape A4 with cut marks</p></div><button class="link" id="layoutClose">Close</button></div>
+  <div class="a4-preview"><canvas id="layoutCanvas"></canvas><span class="a4-loading" id="layoutLoading">Laying out&hellip;</span></div>
+  <label class="check-row" id="layoutFillRow"><input type="checkbox" id="layoutFill" checked> <span>Repeat to fill the page</span></label>
+  <p class="sub">Print at 100% (actual size) so each strip comes out 5 × 15 cm.</p>
+  <div class="share-row" id="layoutRow"></div>
 </div>
 
 <div class="sheet" id="postSheet" aria-hidden="true">

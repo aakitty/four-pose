@@ -75,7 +75,7 @@ function drawOps(ctx, ops, cut) {
 export function drawSticker(ctx, key, cx, cy, size, rot = 0) {
   const st = STICKERS[key]; if (!st) return;
   ctx.save(); ctx.translate(cx, cy); ctx.rotate(rot); ctx.scale(size / 100, size / 100); ctx.translate(-50, -50);
-  if (st.cut) { ctx.save(); ctx.shadowColor = 'rgba(0,0,0,0.22)'; ctx.shadowBlur = 6; ctx.shadowOffsetY = 2; drawOps(ctx, st.ops, true); ctx.restore(); }
+  ctx.shadowColor = 'rgba(0,0,0,0.18)'; ctx.shadowBlur = 4; ctx.shadowOffsetY = 1.5;
   drawOps(ctx, st.ops, false);
   ctx.restore();
 }
@@ -97,6 +97,5 @@ function opSVG(o, cut) {
 }
 export function stickerSVG(key) {
   const st = STICKERS[key]; if (!st) return '';
-  const cut = st.cut ? `<g filter="url(#fpShadow)">${st.ops.map(o => opSVG(o, true)).join('')}</g>` : '';
-  return `<svg viewBox="-8 -8 116 116" xmlns="http://www.w3.org/2000/svg" stroke-linejoin="round" stroke-linecap="round"><defs><filter id="fpShadow" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="2" stdDeviation="2.5" flood-opacity=".22"/></filter></defs>${cut}${st.ops.map(o => opSVG(o, false)).join('')}</svg>`;
+  return `<svg viewBox="-8 -8 116 116" xmlns="http://www.w3.org/2000/svg" stroke-linejoin="round" stroke-linecap="round"><defs><filter id="fpShadow" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="1.5" stdDeviation="2" flood-opacity=".18"/></filter></defs><g filter="url(#fpShadow)">${st.ops.map(o => opSVG(o, false)).join('')}</g></svg>`;
 }
