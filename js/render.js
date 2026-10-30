@@ -1,3 +1,4 @@
+import { drawSticker, STICKERS } from './stickers.js';
 // Four Poses — strip rendering engine (templates, filters, patterns, layout)
 
 export const FONTS = {
@@ -61,10 +62,10 @@ export const TEMPLATES = {
   'y2k-chrome': { name: 'Y2K Chrome', style: 'Y2K', bg: { type: 'chrome' }, frame: { color: '#1A1A1A', width: 4, radius: 4 }, deco: 'stars', font: 'pixel', text: '#1A1A1A', filter: 'cyan' },
   'kawaii-pop': { name: 'Kawaii Pop', style: 'Kawaii', bg: { type: 'polka', color: '#FBE7A1', accent: '#F7A8C4' }, frame: { color: '#FFFFFF', width: 10, radius: 22 }, deco: 'hearts', font: 'sign', text: '#C8102E', filter: 'faded' },
   'pastel-doodle': { name: 'Pastel Doodle', style: 'Kawaii', bg: { type: 'checker', color: '#F3C9B5', accent: '#F8DDD0' }, frame: { color: '#FFF4DC', width: 8, radius: 16 }, deco: 'doodles', font: 'handwritten', text: '#5B061A', filter: 'sepia' },
-  'film-35': { name: 'Film 35mm', style: 'Film', bg: { type: 'solid', color: '#1A1A1A' }, frame: null, deco: 'sprockets', font: 'typewriter', text: '#FFF4DC', filter: 'film', date: '#FF8A3D' },
-  'film-noir': { name: 'Film Noir', style: 'Film', bg: { type: 'solid', color: '#0E0E0E' }, frame: { color: '#FFFFFF', width: 3, radius: 0 }, deco: null, font: 'typewriter', text: '#FFFFFF', filter: 'bw' },
+  'film-35': { name: 'Film 35mm', cap: 'S', style: 'Film', bg: { type: 'solid', color: '#1A1A1A' }, frame: null, deco: 'sprockets', font: 'typewriter', text: '#FFF4DC', filter: 'film', date: '#FF8A3D' },
+  'film-noir': { name: 'Film Noir', cap: 'S', style: 'Film', bg: { type: 'solid', color: '#0E0E0E' }, frame: { color: '#FFFFFF', width: 3, radius: 0 }, deco: null, font: 'typewriter', text: '#FFFFFF', filter: 'bw' },
   'minimal-mono': { name: 'Minimal Mono', style: 'Minimal', bg: { type: 'solid', color: '#FFF4DC' }, frame: { color: '#1A1A1A', width: 2, radius: 0 }, deco: null, font: 'classic', text: '#1A1A1A', filter: 'original' },
-  'booth-red': { name: 'Booth Red', style: 'Booth', bg: { type: 'solid', color: '#C8102E' }, frame: { color: '#FFF4DC', width: 6, radius: 6 }, deco: 'bulbs', font: 'sign', text: '#FFF4DC', filter: 'original' },
+  'booth-red': { name: 'Booth Red', cap: 'M', style: 'Booth', bg: { type: 'solid', color: '#C8102E' }, frame: { color: '#FFF4DC', width: 6, radius: 6 }, deco: 'bulbs', font: 'sign', text: '#FFF4DC', filter: 'original' },
   'harlequin': { name: 'Harlequin', style: 'Booth', bg: { type: 'harlequin', color: '#5B061A', accent: '#C8102E' }, frame: { color: '#E8B04B', width: 6, radius: 4 }, band: '#5B061A', deco: null, font: 'vogue', text: '#E8B04B', filter: 'kodak' },
   'disco-ball': { name: 'Disco Ball', style: 'Booth', bg: { type: 'disco', color: '#BFC0C8' }, frame: { color: '#1A1A1A', width: 5, radius: 6 }, band: '#1A1A1A', deco: 'sparkles', font: 'marquee', text: '#E8B04B', filter: 'vivid' },
   'retro-stripes': { name: 'Candy Stripe', style: 'Booth', bg: { type: 'stripes', color: '#FFF4DC', accent: '#C8102E' }, frame: { color: '#FFF4DC', width: 8, radius: 6 }, band: '#FFF4DC', deco: null, font: 'retro', text: '#C8102E', filter: 'film' },
@@ -79,42 +80,50 @@ export const TEMPLATES = {
   'rodeo': { name: 'Rodeo', style: 'Retro', bg: { type: 'solid', color: '#F3E2C7' }, frame: { color: '#7A3E1D', width: 5, radius: 4 }, deco: 'stars', decoColor: '#C97B3D', font: 'western', text: '#7A3E1D', filter: 'sepia' },
   'golden-hour': { name: 'Golden Hour', style: 'Film', bg: { type: 'gradient', colors: ['#F7B267', '#F25C54', '#5B061A'] }, frame: { color: '#FFF4DC', width: 6, radius: 4 }, deco: null, font: 'serif', text: '#FFF4DC', filter: 'golden' },
   'kraft-paper': { name: 'Kraft Paper', style: 'Film', bg: { type: 'kraft', color: '#C9A57A' }, frame: { color: '#FFF4DC', width: 12, radius: 2 }, deco: null, font: 'courier', text: '#3A2416', filter: 'disposable' },
-  'camcorder': { name: 'Camcorder', style: 'Film', bg: { type: 'solid', color: '#111111' }, frame: null, deco: 'scanlines', font: 'eightbit', text: '#F0F0F0', filter: 'vhs', date: '#FF8A3D' },
-  'polaroid': { name: 'Polaroid', style: 'Minimal', bg: { type: 'solid', color: '#FAFAF7' }, frame: { color: '#E9E6DE', width: 2, radius: 0 }, deco: null, font: 'signature', text: '#1A1A1A', filter: 'polaroid' },
+  'camcorder': { name: 'Camcorder', cap: 'S', style: 'Film', bg: { type: 'solid', color: '#111111' }, frame: null, deco: 'scanlines', font: 'eightbit', text: '#F0F0F0', filter: 'vhs', date: '#FF8A3D' },
+  'polaroid': { name: 'Polaroid', cap: 'L', style: 'Minimal', bg: { type: 'solid', color: '#FAFAF7' }, frame: { color: '#E9E6DE', width: 2, radius: 0 }, deco: null, font: 'signature', text: '#1A1A1A', filter: 'polaroid' },
   'sage-garden': { name: 'Sage Garden', style: 'Minimal', bg: { type: 'solid', color: '#C9D6BF' }, frame: { color: '#FFFFFF', width: 8, radius: 12 }, deco: 'flowers', font: 'elegant', text: '#3E5A3A', filter: 'matte' },
-  'newsprint': { name: 'Newsprint', style: 'Minimal', bg: { type: 'solid', color: '#F2EFE6' }, frame: { color: '#1A1A1A', width: 2, radius: 0 }, deco: null, font: 'vogue', text: '#1A1A1A', filter: 'noir' },
+  'newsprint': { name: 'Newsprint', cap: 'L', style: 'Minimal', bg: { type: 'solid', color: '#F2EFE6' }, frame: { color: '#1A1A1A', width: 2, radius: 0 }, deco: null, font: 'vogue', text: '#1A1A1A', filter: 'noir' },
 };
 
 export const BORDER_COLORS = ['#1A1A1A', '#5B061A', '#C8102E', '#FFF4DC', '#E8B04B', '#F7A8C4', '#D9D9E0', '#F3C9B5', '#FFFFFF', '#7A3E1D', '#3E5A3A', '#1B1F4A', '#9EC9FF', '#C6A8FF'];
 export const TEXT_COLORS = ['#1A1A1A', '#FFFFFF', '#FFF4DC', '#C8102E', '#5B061A', '#E8B04B', '#F7A8C4', '#FF3EA5', '#FF8A3D', '#FFE14D', '#8FE3A6', '#3E5A3A', '#00E5FF', '#2F5BEA', '#1B1F4A', '#C6A8FF', '#7A3E1D', '#D9D9E0'];
 export const BORDER_PATTERNS = { none: 'Template', solid: 'Solid', cherry: 'Cherry red', cheetah: 'Cheetah', polka: 'Polka dot', checker: 'Checker', gingham: 'Gingham', stripes: 'Stripes', harlequin: 'Harlequin', hearts: 'Hearts', stars: 'Stars' };
-export const THICKNESS = { S: 28, M: 44, L: 64 };
+// Layout units are 0.1 mm: a strip is 500 × 1500 (5 × 15 cm), a 2×2 is 1000 × 1500 (10 × 15 cm).
+export const THICKNESS = { S: 22, M: 34, L: 50 };
+export const CAPSPACE = { none: 0, S: 110, M: 160, L: 250 };
+export const CAPSPACE_LABEL = { none: 'None', S: 'Small', M: 'Medium', L: 'Large' };
+export const MM = 10; // layout units per millimetre
 
 export function defaultLook(templateId = 'booth-red') {
   const t = TEMPLATES[templateId];
   return {
     template: templateId, layout: 'strip', filter: t.filter, intensity: 80,
-    font: t.font, textColor: null, caption: 'four poses', dateStamp: true,
+    font: t.font, textColor: null, caption: 'four poses', dateStamp: true, capSpace: t.cap || 'M',
     border: { color: null, pattern: 'none', thickness: 'M' }, flash: 'off',
+    stickers: [], backdrop: { id: 'none', color: '#2F4F86' },
   };
 }
 
 // ---------- layout ----------
 export function layoutFor(look) {
   const P = THICKNESS[look.border?.thickness || 'M'];
-  const gap = Math.round(P * 0.45);
-  const footer = 170;
+  const gap = Math.round(P * 0.55);
+  const F = CAPSPACE[look.capSpace] ?? CAPSPACE.M;
+  const bottom = F || P;
   if (look.layout === 'grid') {
-    const s = 460;
-    const W = 2 * s + gap + 2 * P, H = P + 2 * s + gap + footer;
-    const slots = [0, 1, 2, 3].map(i => ({ x: P + (i % 2) * (s + gap), y: P + Math.floor(i / 2) * (s + gap), w: s, h: s }));
-    return { W, H, P, gap, footer, slots, photoAspect: 1 };
+    const W = 1000, H = 1500;
+    const w = (W - 2 * P - gap) / 2, h = (H - P - bottom - gap) / 2;
+    const slots = [0, 1, 2, 3].map(i => ({ x: P + (i % 2) * (w + gap), y: P + Math.floor(i / 2) * (h + gap), w, h }));
+    return { W, H, P, gap, footer: F, bottom, slots, photoAspect: w / h };
   }
-  const w = 520, h = 390;
-  const W = w + 2 * P, H = P + 4 * h + 3 * gap + footer;
+  const W = 500, H = 1500;
+  const w = W - 2 * P, h = (H - P - bottom - 3 * gap) / 4;
   const slots = [0, 1, 2, 3].map(i => ({ x: P, y: P + i * (h + gap), w, h }));
-  return { W, H, P, gap, footer, slots, photoAspect: w / h };
+  return { W, H, P, gap, footer: F, bottom, slots, photoAspect: w / h };
 }
+// Shape the camera shoots in (photos are cropped to their slot afterwards).
+export const CAPTURE_ASPECT = { strip: 1.4, grid: 5 / 7 };
 
 // ---------- helpers ----------
 function rng(seed) { let a = seed >>> 0; return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
@@ -198,7 +207,7 @@ function drawCover(ctx, img, x, y, w, h) {
 export function formatDate(d = new Date()) { const p = n => String(n).padStart(2, '0'); return `${p(d.getDate())}.${p(d.getMonth() + 1)}.${String(d.getFullYear()).slice(2)}`; }
 
 // Render a look onto a canvas. shots: array of 4 canvases (already filtered) or null for design-only.
-export function renderLook(canvas, look, shots, { scale = 1, empty = false } = {}) {
+export function renderLook(canvas, look, shots, { scale = 1, empty = false, stickers = true } = {}) {
   const t = TEMPLATES[look.template] || TEMPLATES['booth-red'];
   const L = layoutFor(look);
   canvas.width = Math.round(L.W * scale); canvas.height = Math.round(L.H * scale);
@@ -217,33 +226,37 @@ export function renderLook(canvas, look, shots, { scale = 1, empty = false } = {
     else {
       const dark = lum((look.border?.color) || t.bg.color || t.bg.colors?.[1] || '#FFF4DC') < 0.4;
       ctx.fillStyle = dark ? 'rgba(255,244,220,0.10)' : 'rgba(26,26,26,0.07)'; ctx.fillRect(s.x, s.y, s.w, s.h);
-      ctx.strokeStyle = dark ? 'rgba(255,244,220,0.55)' : 'rgba(26,26,26,0.35)'; ctx.setLineDash([14, 10]); ctx.lineWidth = 3; rr(ctx, s.x + 10, s.y + 10, s.w - 20, s.h - 20, Math.max(0, radius - 6)); ctx.stroke(); ctx.setLineDash([]);
-      ctx.fillStyle = dark ? 'rgba(255,244,220,0.6)' : 'rgba(26,26,26,0.45)'; ctx.font = '600 40px Inter, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(String(i + 1), s.x + s.w / 2, s.y + s.h / 2);
+      ctx.strokeStyle = dark ? 'rgba(255,244,220,0.55)' : 'rgba(26,26,26,0.35)'; ctx.setLineDash([12, 9]); ctx.lineWidth = 3; rr(ctx, s.x + 9, s.y + 9, s.w - 18, s.h - 18, Math.max(0, radius - 6)); ctx.stroke(); ctx.setLineDash([]);
+      ctx.fillStyle = dark ? 'rgba(255,244,220,0.6)' : 'rgba(26,26,26,0.45)'; ctx.font = `600 ${Math.round(Math.min(s.w, s.h) * 0.16)}px Inter, sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(String(i + 1), s.x + s.w / 2, s.y + s.h / 2);
     }
     ctx.restore();
   });
-  // footer
+  // footer: caption space (None / Small / Medium / Large)
   const f = FONTS[look.font] || FONTS.bubble;
   const color = look.textColor || t.text;
-  const fy = L.H - L.footer;
+  const F = L.footer, fy = L.H - L.bottom;
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  const cap = (look.caption || '').trim();
+  const cap = F ? (look.caption || '').trim() : '';
+  const date = F && look.dateStamp;
   const noPattern = !look.border || look.border.pattern === 'none';
-  if (t.band && noPattern && !look.border?.color) { ctx.fillStyle = t.band; rr(ctx, L.P, fy + 14, L.W - 2 * L.P, L.footer - 14 - Math.min(L.P, 30), 12); ctx.fill(); }
-  if (cap) {
-    let size = 54 * f.sizeK;
+  if (F && t.band && noPattern && !look.border?.color) { ctx.fillStyle = t.band; rr(ctx, L.P, fy + 10, L.W - 2 * L.P, F - 10 - Math.min(L.P, 26), 10); ctx.fill(); }
+  const spec = { S: { cap: 44, date: 20, cy: cap && date ? 0.4 : 0.47, dy: 0.78 }, M: { cap: 56, date: 26, cy: date ? 0.38 : 0.47, dy: 0.74 }, L: { cap: 84, date: 32, cy: date ? 0.4 : 0.47, dy: 0.76 } }[look.capSpace] || null;
+  if (spec && cap) {
+    let size = spec.cap * f.sizeK * (L.W > 600 ? 1.25 : 1);
     ctx.font = `${fontCSS(f)}${size}px "${f.family}"`;
-    while (ctx.measureText(cap).width > L.W - 2 * L.P - 24 && size > 14) { size -= 2; ctx.font = `${fontCSS(f)}${size}px "${f.family}"`; }
+    while (ctx.measureText(cap).width > L.W - 2 * L.P - 20 && size > 12) { size -= 2; ctx.font = `${fontCSS(f)}${size}px "${f.family}"`; }
     ctx.fillStyle = color;
-    if (t.glow) { ctx.shadowColor = color; ctx.shadowBlur = 22; }
-    ctx.fillText(cap, L.W / 2, fy + (look.dateStamp ? 66 : 84));
+    if (t.glow) { ctx.shadowColor = color; ctx.shadowBlur = 18; }
+    ctx.fillText(cap, L.W / 2, fy + F * spec.cy);
     ctx.shadowBlur = 0; ctx.shadowColor = 'transparent';
   }
-  if (look.dateStamp) {
-    ctx.font = `400 ${t.date ? 40 : 30}px "${t.date ? 'VT323' : 'Inter'}"`;
+  if (spec && date) {
+    const ds = spec.date * (t.date ? 1.3 : 1);
+    ctx.font = `400 ${ds}px "${t.date ? 'VT323' : 'Inter'}"`;
     ctx.fillStyle = t.date || color; ctx.globalAlpha = t.date ? 1 : 0.8;
-    ctx.fillText(formatDate(), L.W / 2, fy + (cap ? 124 : 84)); ctx.globalAlpha = 1;
+    ctx.fillText(formatDate(), L.W / 2, fy + F * (cap ? spec.dy : 0.5)); ctx.globalAlpha = 1;
   }
+  if (stickers !== false) drawStickers(ctx, look, 0, 0, L.W, L.H);
   return canvas;
 }
 
@@ -323,4 +336,145 @@ export function downscale(src, maxW) {
   if (src.width <= maxW) return src;
   const k = maxW / src.width; const c = document.createElement('canvas'); c.width = maxW; c.height = Math.round(src.height * k);
   c.getContext('2d').drawImage(src, 0, 0, c.width, c.height); return c;
+}
+
+// ---------- stickers ----------
+// Sticker positions are stored relative to the strip: x, y as fractions of its
+// width/height (may sit a little outside it), s = size as a fraction of its width.
+export function drawStickers(ctx, look, x0, y0, w, h) {
+  for (const k of look.stickers || []) if (STICKERS[k.k]) drawSticker(ctx, k.k, x0 + k.x * w, y0 + k.y * h, k.s * w, k.r || 0);
+}
+
+// ---------- backgrounds behind the strip ----------
+export const BACKDROPS = {
+  none: { label: 'None' },
+  lace: { label: 'Lace' },
+  denim: { label: 'Denim' },
+  velvet: { label: 'Red velvet' },
+  satin: { label: 'Satin' },
+  cork: { label: 'Cork board' },
+  paper: { label: 'Paper' },
+  wallpaper: { label: 'Wallpaper' },
+  gingham: { label: 'Gingham' },
+  sky: { label: 'Baby blue' },
+  hearts: { label: 'Hearts' },
+  night: { label: 'Night sky' },
+  checker: { label: 'Checker' },
+  color: { label: 'Colour' },
+  photo: { label: 'My photo' },
+};
+const bdCache = new Map();
+function speckle(ctx, W, H, n, colors, seed, size = 2) { const r = rng(seed); for (let i = 0; i < n; i++) { ctx.fillStyle = colors[i % colors.length]; ctx.fillRect(r() * W, r() * H, size * (0.5 + r()), size * (0.5 + r())); } }
+function vignette(ctx, W, H, a) { const g = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.25, W / 2, H / 2, Math.hypot(W, H) * 0.6); g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, `rgba(0,0,0,${a})`); ctx.fillStyle = g; ctx.fillRect(0, 0, W, H); }
+function paintBackdrop(ctx, bd, W, H, img) {
+  const id = bd?.id || 'none'; const u = Math.max(W, H) / 1920; // pattern scale
+  const fill = c => { ctx.fillStyle = c; ctx.fillRect(0, 0, W, H); };
+  if (id === 'photo' && img) { ctx.fillStyle = '#222'; ctx.fillRect(0, 0, W, H); drawCover(ctx, img, 0, 0, W, H); return; }
+  if (id === 'color') return fill(bd.color || '#2F4F86');
+  if (id === 'denim' || id === 'lace') {
+    fill('#2E4C80'); ctx.lineWidth = 2.2 * u;
+    for (let i = -H; i < W; i += 7 * u) { ctx.strokeStyle = (Math.round(i / (7 * u)) % 2) ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,20,0.12)'; ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i + H * 0.55, H); ctx.stroke(); }
+    speckle(ctx, W, H, W * H / 900 / u, ['rgba(255,255,255,0.10)', 'rgba(0,0,0,0.10)'], 3, 2.4 * u); vignette(ctx, W, H, 0.45); return;
+  }
+  if (id === 'velvet') {
+    const g = ctx.createLinearGradient(0, 0, W, 0); for (let k = 0; k <= 48; k++) { const v = (Math.sin(k * 1.7) + Math.sin(k * 0.6)) / 4 + 0.5; g.addColorStop(k / 48, shade('#8A1028', 0.62 + v * 0.55)); }
+    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H); speckle(ctx, W, H, W * H / 700 / u, ['rgba(255,120,140,0.08)', 'rgba(0,0,0,0.12)'], 5, 2 * u); vignette(ctx, W, H, 0.55); return;
+  }
+  if (id === 'satin') {
+    fill('#D9D9E0'); const r = rng(11);
+    for (let i = 0; i < 14; i++) { const x = r() * W, y = r() * H, rad = (250 + r() * 500) * u; const g = ctx.createRadialGradient(x, y, 0, x, y, rad); const light = i % 2 === 0; g.addColorStop(0, light ? 'rgba(255,255,255,0.85)' : 'rgba(150,150,165,0.55)'); g.addColorStop(1, 'rgba(255,255,255,0)'); ctx.fillStyle = g; ctx.beginPath(); ctx.ellipse(x, y, rad, rad * 0.45, -0.7 + r() * 0.4, 0, 7); ctx.fill(); }
+    vignette(ctx, W, H, 0.18); return;
+  }
+  if (id === 'cork') { fill('#B98A57'); speckle(ctx, W, H, W * H / 260 / u, ['#8E6236', '#D2A776', '#A0703F', '#6E4A26'], 9, 3.2 * u); vignette(ctx, W, H, 0.3); return; }
+  if (id === 'paper') { fill('#F2E8D3'); speckle(ctx, W, H, W * H / 500 / u, ['rgba(120,90,50,0.07)', 'rgba(255,255,255,0.5)'], 13, 3 * u); vignette(ctx, W, H, 0.12); return; }
+  if (id === 'wallpaper') { fill('#F2E2A0'); ctx.fillStyle = '#E8D27F'; const w = 64 * u; for (let x = 0; x < W; x += w * 2) ctx.fillRect(x, 0, w, H); speckle(ctx, W, H, W * H / 900 / u, ['rgba(255,255,255,0.18)'], 17, 2 * u); return; }
+  if (id === 'gingham') { fill('#FFFFFF'); const c = 60 * u; ctx.fillStyle = 'rgba(240,120,160,0.45)'; for (let x = 0; x < W; x += c * 2) ctx.fillRect(x, 0, c, H); for (let y = 0; y < H; y += c * 2) ctx.fillRect(0, y, W, c); return; }
+  if (id === 'sky') { fill('#A9CBEE'); speckle(ctx, W, H, W * H / 900 / u, ['rgba(255,255,255,0.15)'], 19, 2 * u); vignette(ctx, W, H, 0.12); return; }
+  if (id === 'hearts') { fill('#F8CFDD'); ctx.fillStyle = '#EE7FA3'; const g = 110 * u; for (let y = g / 2, row = 0; y < H + g; y += g, row++) for (let x = row % 2 ? g / 2 : 0; x < W + g; x += g) { heartPath(ctx, x, y, 22 * u); ctx.fill(); } return; }
+  if (id === 'night') { fill('#141A3D'); const r = rng(23); for (let i = 0; i < W * H / 9000 / u; i++) { ctx.fillStyle = i % 3 ? '#FFFFFF' : '#E8B04B'; const x = r() * W, y = r() * H; if (i % 7 === 0) { sparkle(ctx, x, y, (8 + r() * 10) * u); ctx.fill(); } else { ctx.globalAlpha = 0.4 + r() * 0.6; ctx.beginPath(); ctx.arc(x, y, (1 + r() * 2.2) * u, 0, 7); ctx.fill(); ctx.globalAlpha = 1; } } vignette(ctx, W, H, 0.35); return; }
+  if (id === 'checker') { fill('#F4F1EA'); ctx.fillStyle = '#1A1A1A'; const c = 96 * u; for (let y = 0; y < H; y += c) for (let x = 0; x < W; x += c) if ((Math.round(x / c) + Math.round(y / c)) % 2 === 0) ctx.fillRect(x, y, c, c); return; }
+  fill('#F2E8D3');
+}
+function laceFrame(ctx, x, y, w, h, u) {
+  // scalloped white lace around the strip
+  const pad = 46 * u, X = x - pad, Y = y - pad, Wd = w + pad * 2, Hd = h + pad * 2, sc = 22 * u;
+  ctx.save(); ctx.shadowColor = 'rgba(0,0,0,0.25)'; ctx.shadowBlur = 16 * u;
+  ctx.fillStyle = '#FBF8F2';
+  rr(ctx, X, Y, Wd, Hd, 16 * u); ctx.fill();
+  const edge = (x1, y1, x2, y2) => { const n = Math.max(2, Math.round(Math.hypot(x2 - x1, y2 - y1) / (sc * 1.6))); for (let i = 0; i <= n; i++) { ctx.beginPath(); ctx.arc(x1 + (x2 - x1) * i / n, y1 + (y2 - y1) * i / n, sc, 0, 7); ctx.fill(); } };
+  edge(X, Y, X + Wd, Y); edge(X, Y + Hd, X + Wd, Y + Hd); edge(X, Y, X, Y + Hd); edge(X + Wd, Y, X + Wd, Y + Hd);
+  ctx.restore();
+  ctx.fillStyle = 'rgba(46,76,128,0.55)';
+  const holes = (x1, y1, x2, y2) => { const n = Math.max(2, Math.round(Math.hypot(x2 - x1, y2 - y1) / (sc * 1.6))); for (let i = 0; i <= n; i++) { ctx.beginPath(); ctx.arc(x1 + (x2 - x1) * i / n, y1 + (y2 - y1) * i / n, sc * 0.32, 0, 7); ctx.fill(); } };
+  const m = pad * 0.42; holes(X + m, Y + m, X + Wd - m, Y + m); holes(X + m, Y + Hd - m, X + Wd - m, Y + Hd - m); holes(X + m, Y + m, X + m, Y + Hd - m); holes(X + Wd - m, Y + m, X + Wd - m, Y + Hd - m);
+  ctx.strokeStyle = 'rgba(46,76,128,0.35)'; ctx.lineWidth = 2 * u; ctx.setLineDash([6 * u, 6 * u]); rr(ctx, X + pad * 0.72, Y + pad * 0.72, Wd - pad * 1.44, Hd - pad * 1.44, 8 * u); ctx.stroke(); ctx.setLineDash([]);
+}
+export function backdropThumb(canvas, bd, w, h, img) { canvas.width = w; canvas.height = h; paintBackdrop(canvas.getContext('2d'), bd, w, h, img); return canvas; }
+
+// ---------- story image: the strip on its background ----------
+export const SCENE = { W: 1080, H: 1920 };
+export function sceneLayout(look) {
+  const L = layoutFor(look);
+  const k = Math.min((SCENE.H * 0.74) / L.H, (SCENE.W * 0.8) / L.W);
+  const w = L.W * k, h = L.H * k;
+  return { W: SCENE.W, H: SCENE.H, x: (SCENE.W - w) / 2, y: (SCENE.H - h) / 2 - SCENE.H * 0.01, w, h, k };
+}
+export function renderScene(canvas, look, shots, { scale = 1, empty = false, bgImg = null } = {}) {
+  const S = sceneLayout(look); const W = Math.round(S.W * scale), H = Math.round(S.H * scale);
+  canvas.width = W; canvas.height = H; const ctx = canvas.getContext('2d');
+  const bd = look.backdrop?.id && look.backdrop.id !== 'none' ? look.backdrop : { id: 'paper' };
+  const key = `${bd.id}|${bd.color}|${W}|${H}|${bd.id === 'photo' ? (bgImg?.src || '').length : ''}`;
+  let bgc = bdCache.get(key);
+  if (!bgc) { bgc = document.createElement('canvas'); bgc.width = W; bgc.height = H; paintBackdrop(bgc.getContext('2d'), bd, W, H, bgImg); if (bdCache.size > 8) bdCache.clear(); bdCache.set(key, bgc); }
+  ctx.drawImage(bgc, 0, 0);
+  const x = S.x * scale, y = S.y * scale, w = S.w * scale, h = S.h * scale;
+  if (bd.id === 'lace') laceFrame(ctx, x, y, w, h, scale);
+  const strip = document.createElement('canvas'); renderLook(strip, look, shots, { scale: w / layoutFor(look).W, empty, stickers: false });
+  ctx.save(); ctx.shadowColor = 'rgba(0,0,0,0.38)'; ctx.shadowBlur = 36 * scale; ctx.shadowOffsetY = 14 * scale; ctx.drawImage(strip, x, y, w, h); ctx.restore();
+  drawStickers(ctx, look, x, y, w, h);
+  return canvas;
+}
+
+// ---------- A4 print sheet ----------
+// A4 landscape at 300 dpi. Strips (5 × 15 cm) go 4 across, 2×2 prints (10 × 15 cm) 2 across.
+export const A4 = { W: 3508, H: 2480, DPI: 300 };
+export function renderA4(canvas, look, shots) {
+  canvas.width = A4.W; canvas.height = A4.H; const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#FFFFFF'; ctx.fillRect(0, 0, A4.W, A4.H);
+  const pxmm = A4.DPI / 25.4; const L = layoutFor(look);
+  const wmm = L.W / MM, hmm = L.H / MM, n = look.layout === 'grid' ? 2 : 4, gapmm = 15;
+  const w = wmm * pxmm, h = hmm * pxmm, gap = gapmm * pxmm;
+  const x0 = (A4.W - (n * w + (n - 1) * gap)) / 2, y0 = (A4.H - h) / 2;
+  const strip = document.createElement('canvas'); renderLook(strip, look, shots, { scale: w / L.W });
+  const mark = 8 * pxmm, off = 2 * pxmm;
+  ctx.strokeStyle = '#9A9A9A'; ctx.lineWidth = 2;
+  for (let i = 0; i < n; i++) {
+    const x = x0 + i * (w + gap);
+    ctx.drawImage(strip, x, y0, w, h);
+    for (const [cx, cy, dx, dy] of [[x, y0, -1, -1], [x + w, y0, 1, -1], [x, y0 + h, -1, 1], [x + w, y0 + h, 1, 1]]) {
+      ctx.beginPath(); ctx.moveTo(cx + dx * off, cy); ctx.lineTo(cx + dx * (off + mark), cy); ctx.moveTo(cx, cy + dy * off); ctx.lineTo(cx, cy + dy * (off + mark)); ctx.stroke();
+    }
+  }
+  ctx.fillStyle = '#C8102E'; ctx.font = '400 54px "Bungee"'; ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+  ctx.fillText('FOUR POSES', x0, y0 - 18 * pxmm);
+  ctx.fillStyle = '#7A7A7A'; ctx.font = '500 36px "Inter"';
+  ctx.fillText(`${n} ${look.layout === 'grid' ? 'prints' : 'strips'} · ${wmm / 10} × ${hmm / 10} cm each · cut along the grey marks · print at 100% (actual size)`, x0, y0 + h + 22 * pxmm);
+  return canvas;
+}
+// Minimal one-page PDF around a JPEG (A4 landscape), built synchronously so it can be shared straight away.
+export function jpegToPdf(jpegDataURL, wPx, hPx, wPt = 841.89, hPt = 595.28) {
+  const bin = atob(jpegDataURL.split(',')[1]); const img = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) img[i] = bin.charCodeAt(i);
+  const enc = new TextEncoder(); const parts = []; const offsets = []; let len = 0;
+  const push = x => { const b = typeof x === 'string' ? enc.encode(x) : x; parts.push(b); len += b.length; };
+  const obj = (n, body) => { offsets[n] = len; push(`${n} 0 obj\n`); body(); push('\nendobj\n'); };
+  push('%PDF-1.4\n%\xE2\xE3\xCF\xD3\n');
+  obj(1, () => push('<< /Type /Catalog /Pages 2 0 R >>'));
+  obj(2, () => push('<< /Type /Pages /Kids [3 0 R] /Count 1 >>'));
+  obj(3, () => push(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${wPt} ${hPt}] /Resources << /XObject << /Im0 4 0 R >> >> /Contents 5 0 R >>`));
+  obj(4, () => { push(`<< /Type /XObject /Subtype /Image /Width ${wPx} /Height ${hPx} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${img.length} >>\nstream\n`); push(img); push('\nendstream'); });
+  const content = `q ${wPt} 0 0 ${hPt} 0 0 cm /Im0 Do Q`;
+  obj(5, () => push(`<< /Length ${content.length} >>\nstream\n${content}\nendstream`));
+  const xref = len;
+  push(`xref\n0 6\n0000000000 65535 f \n${[1, 2, 3, 4, 5].map(n => String(offsets[n]).padStart(10, '0') + ' 00000 n \n').join('')}trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF`);
+  return new Blob(parts, { type: 'application/pdf' });
 }

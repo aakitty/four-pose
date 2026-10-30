@@ -1,5 +1,6 @@
-import { TEMPLATES, FILTERS, FONTS, STYLES, BORDER_COLORS, TEXT_COLORS, BORDER_PATTERNS, defaultLook, layoutFor, renderLook, applyFilter, digicamFlash, downscale, formatDate } from './render.js';
+import { TEMPLATES, FILTERS, FONTS, STYLES, BORDER_COLORS, TEXT_COLORS, BORDER_PATTERNS, CAPSPACE_LABEL, CAPTURE_ASPECT, BACKDROPS, backdropThumb, renderScene, sceneLayout, renderA4, jpegToPdf, MM, defaultLook, layoutFor, renderLook, applyFilter, digicamFlash, downscale, formatDate } from './render.js';
 import * as cloud from './cloud.js';
+import { STICKERS, STICKER_KEYS, stickerSVG } from './stickers.js';
 
 // ---------- icons ----------
 const sv = (p, extra = '') => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" ${extra}>${p}</svg>`;
@@ -21,6 +22,9 @@ const I = {
   insta: sv('<rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor"/>'),
   tiktok: sv('<path d="M14 3v11.5a3.5 3.5 0 1 1-3.5-3.5M14 3c.5 2.5 2.5 4.5 5 4.5"/>'),
   share: sv('<path d="M12 3v13M7 8l5-5 5 5M5 14v5a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-5"/>'),
+  sticker: sv('<path d="M14 3H7a4 4 0 0 0-4 4v10a4 4 0 0 0 4 4h7l7-7V7a4 4 0 0 0-4-4z"/><path d="M14 21v-3a4 4 0 0 1 4-4h3"/><path d="M8.5 13.5c1 1.2 3.5 1.4 5 0"/><circle cx="9" cy="9.5" r="1" fill="currentColor"/><circle cx="14" cy="9.5" r="1" fill="currentColor"/>'),
+  backdrop: sv('<rect x="3" y="3" width="18" height="18" rx="2"/><rect x="9" y="6" width="6" height="12" rx="1"/><path d="M3 15l4-3 3 2"/>'),
+  print: sv('<path d="M7 8V3h10v5M7 17H5a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="7" y="14" width="10" height="7" rx="1"/>'),
 };
 
 // ---------- utils ----------
@@ -137,8 +141,8 @@ function stopCamera() { if (S.stream) { S.stream.getTracks().forEach(t => t.stop
 $('#btnAllowCam').addEventListener('click', () => { startCamera(); });
 
 function grabFrame() {
-  const L = layoutFor({ layout: S.layout, border: { thickness: 'M' } });
-  const outW = S.layout === 'grid' ? 920 : 1040, outH = Math.round(outW / L.photoAspect);
+  const aspect = CAPTURE_ASPECT[S.layout];
+  const outW = S.layout === 'grid' ? 900 : 1120, outH = Math.round(outW / aspect);
   const vw = video.videoWidth, vh = video.videoHeight;
   const c = document.createElement('canvas'); c.width = outW; c.height = outH;
   const ctx = c.getContext('2d');
@@ -297,7 +301,12 @@ function openStudio() {
   S.look = S.pendingLook ? clone(S.pendingLook) : (last ? { ...defaultLook(last.template), ...last } : defaultLook('booth-red'));
   S.look.layout = S.layout;
   if (!S.look.caption && S.look.caption !== '') S.look.caption = 'four poses';
-  S.pendingLook = null;
+  if (!S.pendingLook) S.look.stickers = [];
+  S.look.stickers = (S.look.stickers || []).map(k => ({ ...k }));
+  S.look.backdrop = S.look.backdrop && BACKDROPS[S.look.backdrop.id] ? { ...S.look.backdrop } : { id: 'none', color: '#2F4F86' };
+  if (S.look.backdrop.id === 'photo' && !S.bgImg) S.look.backdrop.id = 'none';
+  if (!CAPSPACE_LABEL[S.look.capSpace]) S.look.capSpace = 'M';
+  S.pendingLook = null; S.stkSel = null;
   renderToolbar(); closeTool(); show('studio'); schedulePreview();
 }
 let raf = 0;
@@ -306,17 +315,23 @@ function drawPreview() {
   if (!S.look) return;
   const shots = [0, 1, 2, 3].map(i => S.small[i] ? filtered(i) : null);
   const area = $('#previewArea'); const L = layoutFor(S.look);
+  const scene = S.look.backdrop?.id && S.look.backdrop.id !== 'none';
+  const box = scene ? sceneLayout(S.look) : { W: L.W, H: L.H, x: 0, y: 0, w: L.W, h: L.H };
   const maxH = area.clientHeight - 30, maxW = area.clientWidth - 32;
-  const cssScale = Math.min(maxH / L.H, maxW / L.W);
+  const cssScale = Math.min(maxH / box.H, maxW / box.W);
   const dpr = Math.min(2, devicePixelRatio || 1);
-  renderLook(preview, S.look, shots, { scale: cssScale * dpr * 1.0 * (S.look.layout === 'grid' ? 1 : 1) });
-  preview.style.width = Math.round(L.W * cssScale) + 'px'; preview.style.height = Math.round(L.H * cssScale) + 'px';
+  if (scene) renderScene(preview, S.look, shots, { scale: cssScale * dpr, bgImg: S.bgImg, stickers: false });
+  else renderLook(preview, S.look, shots, { scale: cssScale * dpr, stickers: false });
+  preview.style.width = Math.round(box.W * cssScale) + 'px'; preview.style.height = Math.round(box.H * cssScale) + 'px';
+  preview.classList.toggle('scene', scene);
+  S.stripBox = { x: preview.offsetLeft + box.x * cssScale, y: preview.offsetTop + box.y * cssScale, w: box.w * cssScale, h: box.h * cssScale };
+  renderStickerLayer();
   $('#liveLabel').textContent = S.tool ? `Live preview · ${liveText()}` : '';
 }
-function liveText() { const l = S.look; return { template: TEMPLATES[l.template].name, filter: FILTERS[l.filter].label, text: FONTS[l.font].label + ' font', border: l.border.pattern !== 'none' ? BORDER_PATTERNS[l.border.pattern] : (l.border.color ? 'Custom colour' : 'Template border') }[S.tool]; }
+function liveText() { const l = S.look; const n = l.stickers.length; return { template: TEMPLATES[l.template].name, filter: FILTERS[l.filter].label, text: FONTS[l.font].label + ' font \u00b7 ' + CAPSPACE_LABEL[l.capSpace] + ' caption space', border: l.border.pattern !== 'none' ? BORDER_PATTERNS[l.border.pattern] : (l.border.color ? 'Custom colour' : 'Template border'), stickers: n ? `${n} sticker${n > 1 ? 's' : ''}` : 'No stickers yet', backdrop: l.backdrop.id === 'none' ? 'No background' : BACKDROPS[l.backdrop.id].label + ' background' }[S.tool]; }
 new ResizeObserver(() => S.screen === 'studio' && schedulePreview()).observe($('#previewArea'));
 
-const TOOLS = [['template', 'Template', I.template], ['filter', 'Filter', I.filter], ['text', 'Text', I.text], ['border', 'Border', I.border]];
+const TOOLS = [['template', 'Template', I.template], ['filter', 'Filter', I.filter], ['text', 'Text', I.text], ['border', 'Border', I.border], ['stickers', 'Stickers', I.sticker], ['backdrop', 'Background', I.backdrop]];
 function renderToolbar() { $('#toolbar').innerHTML = TOOLS.map(([id, label, ic]) => `<button class="tool ${S.tool === id ? 'on' : ''}" data-tool="${id}">${ic}<span>${label}</span></button>`).join(''); }
 $('#toolbar').addEventListener('click', e => { const b = e.target.closest('[data-tool]'); if (!b) return; S.tool === b.dataset.tool ? closeTool() : openTool(b.dataset.tool); });
 function openTool(t) { if (S.tool !== t) toolBody.scrollTop = 0; S.tool = t; $('#studio').classList.add('tool-open'); $('#toolSheet').setAttribute('aria-hidden', 'false'); renderToolbar(); renderTool(); setTimeout(schedulePreview, 320); }
@@ -331,7 +346,8 @@ function thumbCanvas(look, h, shots = null) {
 }
 // Full-spectrum colour picker: presets, the phone's own colour wheel, and
 // hue + shade sliders to mix any colour.
-const mix = { tc: { h: 340, l: 50 }, bc: { h: 340, l: 50 } };
+const mix = { tc: { h: 340, l: 50 }, bc: { h: 340, l: 50 }, bg: { h: 220, l: 40 } };
+const BG_COLORS = ['#2F4F86', '#141A3D', '#1A1A1A', '#5B061A', '#C8102E', '#F7A8C4', '#F2E2A0', '#A9CBEE', '#C9D6BF', '#FFF4DC', '#FFFFFF', '#D9D9E0'];
 function colorPicker(kind, current, presets) {
   const isCustom = current && !presets.includes(current);
   const m = mix[kind];
@@ -342,7 +358,7 @@ function colorPicker(kind, current, presets) {
     <div class="mix-out"><i id="${kind}Out" style="background:${current || 'transparent'}"></i><code id="${kind}Hex">${current ? current.toUpperCase() : 'Template colour'}</code></div></div>`;
 }
 function setPicked(kind, color, fromSlider) {
-  if (kind === 'tc') S.look.textColor = color; else S.look.border.color = color;
+  if (kind === 'tc') S.look.textColor = color; else if (kind === 'bc') S.look.border.color = color; else S.look.backdrop = color ? { id: 'color', color } : { id: 'none', color: S.look.backdrop.color };
   const box = toolBody.querySelector(`[data-kind=${kind}]`); if (!box) return;
   box.querySelectorAll('.sw').forEach(b => b.classList.toggle('on', b.classList.contains('wheel') ? !!color && !b.parentNode.querySelector(`[data-${kind}="${color}"]`) : (b.dataset[kind] ?? null) === (color || '')));
   const w = box.querySelector('.wheel'); if (color) w.style.setProperty('--cur', color);
@@ -353,7 +369,7 @@ function setPicked(kind, color, fromSlider) {
 }
 function renderTool() {
   const body = $('#toolBody'); const l = S.look;
-  $('#toolTitle').textContent = { template: 'Templates', filter: 'Filters', text: 'Text', border: 'Border' }[S.tool];
+  $('#toolTitle').textContent = { template: 'Templates', filter: 'Filters', text: 'Text', border: 'Border', stickers: 'Stickers', backdrop: 'Background' }[S.tool];
   if (S.tool === 'template') {
     body.innerHTML = `<div class="chips">${['All', ...STYLES].map(s => `<button class="chip ${S.tplFilter === s ? 'on' : ''}" data-st="${s}">${s}</button>`).join('')}</div><div class="tpl-grid" id="tplGrid"></div>`;
     const grid = body.querySelector('#tplGrid');
@@ -372,6 +388,8 @@ function renderTool() {
     });
   } else if (S.tool === 'text') {
     body.innerHTML = `<input class="input" id="capInput" maxlength="28" value="${(l.caption || '').replace(/"/g, '&quot;')}" placeholder="Add a caption" aria-label="Caption">
+      <p class="label">Caption space</p><div class="seg full mini">${Object.entries(CAPSPACE_LABEL).map(([k, v]) => `<button class="${l.capSpace === k ? 'on' : ''}" data-cap="${k}">${v}</button>`).join('')}</div>
+      ${l.capSpace === 'none' ? '<p class="sub">No caption space: photos fill the whole strip, so the caption and date are hidden.</p>' : ''}
       <p class="label">Font <span class="muted">\u00b7 ${Object.keys(FONTS).length}</span></p><div class="font-row">${Object.entries(FONTS).map(([id, f]) => `<button class="font-opt ${l.font === id ? 'on' : ''}" data-font="${id}"><b style="font-family:'${f.family}';font-weight:${f.weight};font-style:${f.style || 'normal'}">Aa</b>${f.label}</button>`).join('')}</div>
       <p class="label">Colour</p>${colorPicker('tc', l.textColor, TEXT_COLORS)}
       <div class="row-between" style="margin-top:16px"><div><p class="label" style="margin:0">Date stamp</p><p class="sub">Adds today's date like an old film camera</p></div><label class="switch"><input type="checkbox" id="dateOn" ${l.dateStamp ? 'checked' : ''}><span></span></label></div>`;
@@ -386,6 +404,23 @@ function renderTool() {
       c.getContext('2d').drawImage(tmp, 0, 0, 60, 60, 0, 0, 120, 120);
       b.append(c); b.insertAdjacentHTML('beforeend', `<span>${label}</span>`); body.querySelector('#patRow').append(b);
     });
+  } else if (S.tool === 'stickers') {
+    body.innerHTML = `<p class="sub" style="margin:0 0 12px">Tap one to add it. Drag to move, pinch with two fingers to resize and turn, or use the round handle. Tap a sticker, then \u00d7 to remove it.</p>
+      <div class="stk-grid">${STICKER_KEYS.map(k => `<button class="stk-btn" data-stk="${k}" aria-label="${k.replace('-', ' ')} sticker">${stickerSVG(k)}</button>`).join('')}</div>
+      <button class="btn outline block" id="stkClear" style="margin-top:14px" ${l.stickers.length ? '' : 'disabled'}>Remove all stickers</button>`;
+  } else if (S.tool === 'backdrop') {
+    const bd = l.backdrop;
+    body.innerHTML = `<p class="sub" style="margin:0 0 12px">Goes behind your strip on the Story image you save. The strip and A4 print stay strip-only.</p><div class="bd-grid" id="bdGrid"></div>
+      ${bd.id === 'color' ? `<p class="label">Colour</p>${colorPicker('bg', bd.color, BG_COLORS)}` : ''}
+      <input type="file" id="bgFile" accept="image/*" hidden>`;
+    const grid = body.querySelector('#bdGrid');
+    Object.entries(BACKDROPS).forEach(([id, b]) => {
+      const btn = document.createElement('button'); btn.className = 'bd' + (bd.id === id ? ' on' : ''); btn.dataset.bd = id;
+      if (id === 'none') btn.insertAdjacentHTML('beforeend', '<i class="bd-none">None</i>');
+      else if (id === 'photo' && !S.bgImg) btn.insertAdjacentHTML('beforeend', `<i class="bd-photo">${I.backdrop}<small>Upload</small></i>`);
+      else btn.append(backdropThumb(document.createElement('canvas'), { id, color: id === 'color' ? (bd.id === 'color' ? bd.color : '#2F4F86') : undefined }, 90, 120, S.bgImg));
+      btn.insertAdjacentHTML('beforeend', `<span>${b.label}</span>`); grid.append(btn);
+    });
   }
 }
 const toolBody = $('#toolBody');
@@ -399,12 +434,21 @@ toolBody.addEventListener('click', e => {
   else if ((t = e.target.closest('[data-font]'))) { l.font = t.dataset.font; toolBody.querySelectorAll('.font-opt').forEach(b => b.classList.toggle('on', b === t)); schedulePreview(); return; }
   else if ((t = e.target.closest('[data-pat]'))) l.border.pattern = t.dataset.pat;
   else if ((t = e.target.closest('[data-th]'))) l.border.thickness = t.dataset.th;
+  else if ((t = e.target.closest('[data-cap]'))) l.capSpace = t.dataset.cap;
+  else if ((t = e.target.closest('[data-bg]'))) { setPicked('bg', t.dataset.bg || null); if (!t.dataset.bg) renderTool(); return; }
+  else if ((t = e.target.closest('[data-stk]'))) { addSticker(t.dataset.stk); return; }
+  else if (e.target.closest('#stkClear')) { l.stickers = []; S.stkSel = null; renderStickerLayer(); renderTool(); toast('Stickers removed', 1300); $('#liveLabel').textContent = `Live preview \u00b7 ${liveText()}`; return; }
+  else if ((t = e.target.closest('[data-bd]'))) {
+    const id = t.dataset.bd;
+    if (id === 'photo') { $('#bgFile').click(); return; }
+    l.backdrop = { id, color: l.backdrop.color || '#2F4F86' };
+  }
   else return;
   const top = toolBody.scrollTop; renderTool(); toolBody.scrollTop = top; schedulePreview();
 });
 toolBody.addEventListener('input', e => {
   const l = S.look;
-  const mk = e.target.id.match(/^(tc|bc)(Wheel|Hue|Light)$/);
+  const mk = e.target.id.match(/^(tc|bc|bg)(Wheel|Hue|Light)$/);
   if (mk) {
     const [, kind, part] = mk; const m = mix[kind];
     if (part === 'Wheel') { setPicked(kind, e.target.value.toUpperCase()); return; }
@@ -417,28 +461,138 @@ toolBody.addEventListener('input', e => {
   else return;
   schedulePreview();
 });
-toolBody.addEventListener('change', e => { if (e.target.id === 'dateOn') { S.look.dateStamp = e.target.checked; schedulePreview(); } });
+toolBody.addEventListener('change', e => {
+  if (e.target.id === 'dateOn') { S.look.dateStamp = e.target.checked; schedulePreview(); }
+  if (e.target.id === 'bgFile' && e.target.files[0]) {
+    const img = new Image(); const url = URL.createObjectURL(e.target.files[0]);
+    img.onload = () => {
+      const k = Math.min(1, 1920 / Math.max(img.width, img.height)); const c = document.createElement('canvas');
+      c.width = Math.round(img.width * k); c.height = Math.round(img.height * k); c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+      c._v = Date.now(); S.bgImg = c; URL.revokeObjectURL(url);
+      S.look.backdrop = { id: 'photo', color: S.look.backdrop.color }; renderTool(); schedulePreview();
+    };
+    img.onerror = () => toast('Couldn\u2019t open that photo');
+    img.src = url;
+  }
+});
+
+// ---------- stickers on the preview ----------
+const stkLayer = $('#stkLayer');
+const stkBounds = () => S.look.backdrop.id !== 'none' ? { x0: -0.6, x1: 1.6, y0: -0.12, y1: 1.12 } : { x0: 0, x1: 1, y0: 0, y1: 1 };
+function addSticker(k) {
+  const l = S.look; if (l.stickers.length >= 30) { toast('That\u2019s a lot of stickers! Remove one first.'); return; }
+  const grid = l.layout === 'grid';
+  l.stickers.push({ k, x: 0.3 + Math.random() * 0.4, y: 0.15 + Math.random() * 0.6, s: grid ? 0.2 : 0.34, r: (Math.random() - 0.5) * 0.5 });
+  S.stkSel = l.stickers.length - 1; renderStickerLayer(); $('#stkClear') && ($('#stkClear').disabled = false);
+  $('#liveLabel').textContent = `Live preview \u00b7 ${liveText()}`;
+}
+function renderStickerLayer() {
+  const b = S.stripBox; if (!b || !S.look) { stkLayer.innerHTML = ''; return; }
+  Object.assign(stkLayer.style, { left: b.x + 'px', top: b.y + 'px', width: b.w + 'px', height: b.h + 'px' });
+  stkLayer.innerHTML = S.look.stickers.map((k, i) => `<div class="stk ${S.stkSel === i ? 'sel' : ''}" data-i="${i}" style="left:${k.x * 100}%;top:${k.y * 100}%;width:${k.s * b.w * 1.16}px;transform:translate(-50%,-50%) rotate(${k.r}rad)">${stickerSVG(k.k)}${S.stkSel === i ? '<button class="stk-del" aria-label="Remove sticker">\u00d7</button><span class="stk-rot" aria-hidden="true"></span>' : ''}</div>`).join('');
+}
+function styleSticker(i) { const el = stkLayer.querySelector(`.stk[data-i="${i}"]`); const k = S.look.stickers[i]; if (!el || !k) return; el.style.left = k.x * 100 + '%'; el.style.top = k.y * 100 + '%'; el.style.width = k.s * S.stripBox.w * 1.16 + 'px'; el.style.transform = `translate(-50%,-50%) rotate(${k.r}rad)`; }
+const ptrs = new Map(); let gest = null;
+function gestureStart(mode) {
+  const i = S.stkSel; const k = S.look.stickers[i]; if (!k) { gest = null; return; }
+  const r = stkLayer.getBoundingClientRect();
+  gest = { i, mode, k0: { ...k }, pts: [...ptrs.values()].map(p => ({ ...p })), cx: r.left + k.x * r.width, cy: r.top + k.y * r.height, W: r.width, H: r.height };
+}
+const clampv = (v, a, b) => Math.max(a, Math.min(b, v));
+$('#previewArea').addEventListener('pointerdown', e => {
+  if (S.screen !== 'studio') return;
+  const del = e.target.closest('.stk-del');
+  if (del) { e.preventDefault(); S.look.stickers.splice(S.stkSel, 1); S.stkSel = null; renderStickerLayer(); $('#liveLabel').textContent = S.tool ? `Live preview \u00b7 ${liveText()}` : ''; return; }
+  const el = e.target.closest('.stk');
+  if (el) {
+    e.preventDefault(); const i = +el.dataset.i;
+    if (S.stkSel !== i) { S.stkSel = i; ptrs.clear(); renderStickerLayer(); }
+    ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    try { $('#previewArea').setPointerCapture(e.pointerId); } catch { }
+    gestureStart(e.target.closest('.stk-rot') ? 'handle' : 'move'); return;
+  }
+  if (S.stkSel != null && ptrs.size === 1) { e.preventDefault(); ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY }); try { $('#previewArea').setPointerCapture(e.pointerId); } catch { } gestureStart('move'); return; }
+  if (S.stkSel != null) { S.stkSel = null; renderStickerLayer(); }
+});
+$('#previewArea').addEventListener('pointermove', e => {
+  if (!gest || !ptrs.has(e.pointerId)) return;
+  e.preventDefault(); ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  const k = S.look.stickers[gest.i]; if (!k) return; const B = stkBounds(); const g = gest; const pts = [...ptrs.values()];
+  if (g.mode === 'handle') {
+    const p = pts[0], p0 = g.pts[0];
+    const d0 = Math.hypot(p0.x - g.cx, p0.y - g.cy), d1 = Math.hypot(p.x - g.cx, p.y - g.cy);
+    k.s = clampv(g.k0.s * d1 / Math.max(10, d0), 0.06, 1.3);
+    k.r = g.k0.r + Math.atan2(p.y - g.cy, p.x - g.cx) - Math.atan2(p0.y - g.cy, p0.x - g.cx);
+  } else if (pts.length >= 2 && g.pts.length >= 2) {
+    const [a0, b0] = g.pts, [a, b] = pts;
+    k.s = clampv(g.k0.s * Math.hypot(b.x - a.x, b.y - a.y) / Math.max(10, Math.hypot(b0.x - a0.x, b0.y - a0.y)), 0.06, 1.3);
+    k.r = g.k0.r + Math.atan2(b.y - a.y, b.x - a.x) - Math.atan2(b0.y - a0.y, b0.x - a0.x);
+    k.x = clampv(g.k0.x + ((a.x + b.x) - (a0.x + b0.x)) / 2 / g.W, B.x0, B.x1); k.y = clampv(g.k0.y + ((a.y + b.y) - (a0.y + b0.y)) / 2 / g.H, B.y0, B.y1);
+  } else {
+    const p = pts[0], p0 = g.pts[0];
+    k.x = clampv(g.k0.x + (p.x - p0.x) / g.W, B.x0, B.x1); k.y = clampv(g.k0.y + (p.y - p0.y) / g.H, B.y0, B.y1);
+  }
+  styleSticker(gest.i);
+});
+const endPtr = e => { if (!ptrs.has(e.pointerId)) return; ptrs.delete(e.pointerId); if (ptrs.size) gestureStart('move'); else gest = null; };
+$('#previewArea').addEventListener('pointerup', endPtr); $('#previewArea').addEventListener('pointercancel', endPtr);
 $('#stBack').addEventListener('click', () => history.back());
 
 $('#stSave').addEventListener('click', () => {
-  const shots = [0, 1, 2, 3].map(i => S.shots[i] ? filtered(i, true) : null);
-  const c = document.createElement('canvas'); renderLook(c, S.look, shots, { scale: 1.5 });
-  const file = dataURLFile(c.toDataURL('image/jpeg', .92), `four-poses-${Date.now()}.jpg`);
-  S.exportBlob = file;
-  const { caption, ...rest } = S.look; store.set('last', { ...rest, caption });
-  closeTool();
-  $('#savedTitle').textContent = 'Your strip is ready';
-  $('#savedSub').textContent = isIOS ? 'Tap Save, then "Save Image" to put it in Photos.' : 'Save it to your gallery or share it straight to your story.';
-  $('#shareRow').innerHTML = [['save', 'Save', I.download], ['insta', 'Instagram', I.insta], ['tiktok', 'TikTok', I.tiktok], ['more', 'More', I.share]].map(([id, n, ic]) => `<button class="share-btn" data-share="${id}"><i>${ic}</i>${n}</button>`).join('');
-  openSheet('savedSheet');
+  const { caption, stickers, ...rest } = S.look; store.set('last', { ...rest, caption, stickers: [] });
+  closeTool(); S.stkSel = null; renderStickerLayer();
+  S.exports = {}; S.fmt = S.look.backdrop.id !== 'none' ? 'story' : 'strip';
+  const small = document.createElement('canvas');
+  renderLook(small, S.look, [0, 1, 2, 3].map(i => S.small[i] ? filtered(i) : null), { scale: S.look.layout === 'grid' ? 0.6 : 0.8 });
+  printAnimation(small.toDataURL('image/jpeg', 0.88), openSaved);
 });
+const fullShots = () => [0, 1, 2, 3].map(i => S.shots[i] ? filtered(i, true) : null);
+const PX_PER_UNIT = 400 / 254; // 400 dpi in 0.1 mm layout units
+function makeExport(fmt) {
+  if (S.exports[fmt]) return S.exports[fmt];
+  const c = document.createElement('canvas'); const stamp = Date.now(); let file;
+  if (fmt === 'strip') { renderLook(c, S.look, fullShots(), { scale: PX_PER_UNIT }); file = dataURLFile(c.toDataURL('image/jpeg', 0.93), `four-poses-${S.look.layout === 'grid' ? '10x15cm' : '15x5cm'}-${stamp}.jpg`); }
+  else if (fmt === 'story') { renderScene(c, S.look, fullShots(), { scale: 1, bgImg: S.bgImg }); file = dataURLFile(c.toDataURL('image/jpeg', 0.92), `four-poses-story-${stamp}.jpg`); }
+  else { renderA4(c, S.look, fullShots()); file = new File([jpegToPdf(c.toDataURL('image/jpeg', 0.92), c.width, c.height)], `four-poses-print-A4-${stamp}.pdf`, { type: 'application/pdf' }); }
+  return (S.exports[fmt] = file);
+}
+const FMT_INFO = {
+  strip: () => S.look.layout === 'grid' ? ['2\u00d72 print', '10 \u00d7 15 cm photo print, high quality'] : ['Strip', '15 \u00d7 5 cm strip, high quality for printing or posting'],
+  story: () => ['Story', '9:16 image with your background and stickers, for Instagram or TikTok stories'],
+  a4: () => ['A4 print', S.look.layout === 'grid' ? 'A4 page with 2 prints and cut marks. Print at 100% (actual size).' : 'A4 page with 4 strips and cut marks. Print at 100% (actual size).'],
+};
+function renderSaved() {
+  $('#fmtSeg').innerHTML = Object.keys(FMT_INFO).map(f => `<button class="${S.fmt === f ? 'on' : ''}" data-fmt="${f}">${FMT_INFO[f]()[0]}</button>`).join('');
+  $('#savedSub').textContent = FMT_INFO[S.fmt]()[1] + (isIOS && S.fmt !== 'a4' ? '. Tap Save, then "Save Image".' : '');
+  const btns = S.fmt === 'a4' ? [['save', 'Save PDF', I.download], ['print', 'Print', I.print], ['more', 'Share', I.share]] : [['save', 'Save', I.download], ['insta', 'Instagram', I.insta], ['tiktok', 'TikTok', I.tiktok], ['more', 'More', I.share]];
+  $('#shareRow').style.gridTemplateColumns = `repeat(${btns.length}, 1fr)`;
+  $('#shareRow').innerHTML = btns.map(([id, n, ic]) => `<button class="share-btn" data-share="${id}"><i>${ic}</i>${n}</button>`).join('');
+}
+function openSaved() { $('#savedTitle').textContent = 'Your strip is ready'; renderSaved(); openSheet('savedSheet'); }
+$('#fmtSeg').addEventListener('click', e => { const b = e.target.closest('[data-fmt]'); if (!b) return; S.fmt = b.dataset.fmt; renderSaved(); });
 $('#shareRow').addEventListener('click', async e => {
-  const b = e.target.closest('[data-share]'); if (!b || !S.exportBlob) return;
-  const id = b.dataset.share; const files = [S.exportBlob];
-  if (id === 'save') { await saveFiles(files, isIOS ? 'Ready to save' : 'Saved to your gallery'); $('#savedTitle').textContent = 'Saved'; return; }
+  const b = e.target.closest('[data-share]'); if (!b || !S.look) return;
+  const id = b.dataset.share; const file = makeExport(S.fmt); const files = [file];
+  if (id === 'print') { const url = URL.createObjectURL(file); const w = window.open(url, '_blank'); if (!w) download(file); toast('Opened the A4 page. Use Print, at 100% / actual size.', 3200); return; }
+  if (id === 'save') { await saveFiles(files, S.fmt === 'a4' ? 'PDF saved' : (isIOS ? 'Ready to save' : 'Saved to your gallery')); $('#savedTitle').textContent = 'Saved'; return; }
   if (navigator.canShare?.({ files })) { try { await navigator.share({ files, title: 'Four Poses' }); return; } catch (err) { if (err.name === 'AbortError') return; } }
-  download(S.exportBlob); toast(id === 'more' ? 'Saved. Share it from your gallery.' : `Saved. Open ${id === 'insta' ? 'Instagram' : 'TikTok'} and add it from your gallery.`, 3200);
+  download(file); toast(id === 'more' ? 'Saved. Share it from your files or gallery.' : `Saved. Open ${id === 'insta' ? 'Instagram' : 'TikTok'} and add it from your gallery.`, 3200);
 });
+
+// ---------- strip comes out of the booth's slot ----------
+function printAnimation(src, done) {
+  const pr = $('#printer'); const img = $('#printImg');
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) { done(); return; }
+  let finished = false;
+  const finish = () => { if (finished) return; finished = true; pr.classList.add('out'); setTimeout(() => { pr.hidden = true; pr.classList.remove('run', 'out'); }, 320); done(); };
+  img.onload = () => {
+    pr.hidden = false; void pr.offsetWidth; pr.classList.add('run');
+    navigator.vibrate?.([30, 120, 30, 120, 30, 260, 40]);
+    setTimeout(finish, 3100);
+  };
+  img.src = src; pr.onclick = finish;
+}
+
 $('#btnShootAgain').addEventListener('click', () => { closeSheet(); S.shots = [null, null, null, null]; S.small = [null, null, null, null]; S.version++; show('camera'); renderProgress(); });
 $('#btnPostLook').addEventListener('click', () => openPost());
 
@@ -448,7 +602,7 @@ function openPost() {
   $('#postNick').value = store.get('nick', '');
   $('#postKeepText').checked = true; drawPostPreview(); openSheet('postSheet');
 }
-function postLook() { const l = clone(S.look); if (!$('#postKeepText').checked) l.caption = ''; return l; }
+function postLook() { const l = clone(S.look); delete l.backdrop; l.stickers = (l.stickers || []).slice(0, 12).map(k => ({ k: k.k, x: +k.x.toFixed(3), y: +k.y.toFixed(3), s: +k.s.toFixed(3), r: +k.r.toFixed(2) })); if (!$('#postKeepText').checked) l.caption = ''; return l; }
 function drawPostPreview() { const c = $('#postCanvas'); const l = postLook(); const L = layoutFor(l); renderLook(c, l, null, { scale: (110 / L.W) * 2, empty: true }); c.style.width = '110px'; }
 $('#postKeepText').addEventListener('change', drawPostPreview);
 $('#postCancel').addEventListener('click', () => closeSheet());
@@ -557,7 +711,7 @@ function openLook(p) {
   });
   $('#lookBy').textContent = `by ${p.nick}`; $('#lookStyle').textContent = styleOf(l);
   const border = l.border.pattern !== 'none' ? BORDER_PATTERNS[l.border.pattern] : (l.border.color ? 'Solid colour' : 'Template');
-  $('#lookConfig').innerHTML = [['Template', TEMPLATES[l.template].name], ['Layout', l.layout === 'grid' ? '2×2 grid' : '4-shot strip'], ['Filter', FILTERS[l.filter].label], ['Font', FONTS[l.font].label], ['Border', border], ['Caption', l.caption || '—']].map(([k, v]) => `<div><dt>${k}</dt><dd>${escapeHTML(String(v))}</dd></div>`).join('');
+  $('#lookConfig').innerHTML = [['Template', TEMPLATES[l.template].name], ['Size', l.layout === 'grid' ? '2×2 · 10 × 15 cm' : 'Strip · 15 × 5 cm'], ['Filter', FILTERS[l.filter].label], ['Font', FONTS[l.font].label], ['Border', border], ['Caption space', CAPSPACE_LABEL[l.capSpace] || 'Medium'], ['Stickers', String((l.stickers || []).length)], ['Caption', l.caption || '—']].map(([k, v]) => `<div><dt>${k}</dt><dd>${escapeHTML(String(v))}</dd></div>`).join('');
   $('#lookMore').innerHTML = I.more; $('#lookMore').style.visibility = p.official ? 'hidden' : '';
 }
 function remix(p) {
@@ -582,6 +736,13 @@ $('#btnInstall').addEventListener('click', async () => { if (!deferredInstall) r
 // ---------- boot ----------
 $('#btnSettings').innerHTML = I.gear; $('#btnFeed').innerHTML = I.feed; $('#btnFlip').innerHTML = I.flip;
 applyTheme(); renderCamControls();
+// curtain opens when the app starts
+(() => {
+  const c = $('#curtain'); if (!c) return;
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) { c.remove(); return; }
+  const open = () => { if (c.classList.contains('open')) return; c.classList.add('open'); setTimeout(() => c.remove(), 1500); };
+  c.addEventListener('click', open); setTimeout(open, 900);
+})();
 history.replaceState({ s: 'camera' }, '');
 document.addEventListener('visibilitychange', () => { if (!document.hidden && S.screen === 'camera') startCamera(); if (!document.hidden && S.screen === 'feed') refreshFeed(); });
 Promise.all(Object.values(FONTS).map(f => document.fonts.load(`${f.style || 'normal'} ${f.weight} 40px "${f.family}"`).catch(() => { }))).then(() => { if (S.screen === 'studio') schedulePreview(); if (S.screen === 'feed') renderFeed(); });

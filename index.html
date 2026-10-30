@@ -77,6 +77,7 @@
     </header>
     <div class="preview-area" id="previewArea">
       <canvas id="preview" aria-label="Strip preview"></canvas>
+      <div class="stk-layer" id="stkLayer"></div>
       <p class="live" id="liveLabel"></p>
     </div>
     <div class="tool-sheet" id="toolSheet" aria-hidden="true">
@@ -133,6 +134,7 @@
 <div class="sheet" id="savedSheet" aria-hidden="true">
   <div class="handle"></div>
   <div class="saved-head"><span class="dot-ok"></span><h2 id="savedTitle">Your strip is ready</h2></div>
+  <div class="seg full mini fmt-seg" id="fmtSeg" role="tablist" aria-label="What to save"></div>
   <p class="sub" id="savedSub">Save it to your photos or share it straight to your story.</p>
   <div class="share-row" id="shareRow"></div>
   <div class="post-card" id="btnPostLook"><div><p class="strong">Post this look to the feed</p><p class="sub">Only the design is shared, never your photos</p></div><span class="chev">›</span></div>
@@ -175,6 +177,18 @@
 </div>
 
 <div class="dialog" id="dialog" hidden><div class="dialog-card"><p id="dialogText"></p><div class="dialog-actions"><button class="btn outline" id="dialogNo">Keep editing</button><button class="btn primary" id="dialogYes">Discard</button></div></div></div>
+
+<div class="printer" id="printer" hidden aria-live="polite">
+  <div class="machine"><div class="mach-top"><svg class="sign mach-sign" viewBox="0 0 268 76" role="img" aria-label="Four Poses" xmlns="http://www.w3.org/2000/svg"><rect y="12" width="260" height="64" rx="14" fill="#E8B04B"/><rect x="6" y="18" width="248" height="52" rx="9" fill="#C8102E"/><circle cx="18.5" cy="24.5" r="2.5" fill="#FFF4DC"/><circle cx="46.5" cy="24.5" r="2.5" fill="#FFF4DC"/><circle cx="74.5" cy="24.5" r="2.5" fill="#FFF4DC"/><circle cx="102.5" cy="24.5" r="2.5" fill="#FFF4DC"/><circle cx="130.5" cy="24.5" r="2.5" fill="#FFF4DC"/><circle cx="158.5" cy="24.5" r="2.5" fill="#FFF4DC"/><circle cx="186.5" cy="24.5" r="2.5" fill="#FFF4DC"/><circle cx="214.5" cy="24.5" r="2.5" fill="#FFF4DC"/><circle cx="242.5" cy="24.5" r="2.5" fill="#FFF4DC"/><text x="47.8" y="56.5" textLength="164.6" lengthAdjust="spacingAndGlyphs" font-family="Bungee" font-size="26.2" fill="#FFF4DC">FOUR POSES</text><path d="M256 0L258.715 9.28471L268 12L258.715 14.7153L256 24L253.285 14.7153L244 12L253.285 9.28471L256 0Z" fill="#C9C9CF"/></svg></div><div class="slot"><i></i></div><span class="mach-light"></span></div>
+  <div class="paper-wrap"><img id="printImg" alt="Your printed strip"></div>
+  <p class="print-msg">Printing your strip&hellip;</p>
+</div>
+
+<div class="curtain" id="curtain" aria-hidden="true">
+  <div class="drape l"></div><div class="drape r"></div>
+  <div class="valance"></div>
+  <div class="curtain-sign"><svg class="sign" viewBox="0 0 268 76" role="img" aria-label="Four Poses" xmlns="http://www.w3.org/2000/svg"><rect y="12" width="260" height="64" rx="14" fill="#E8B04B"/><rect x="6" y="18" width="248" height="52" rx="9" fill="#C8102E"/><circle cx="18.5" cy="24.5" r="2.5" fill="#FFF4DC"/><circle cx="46.5" cy="24.5" r="2.5" fill="#FFF4DC"/><circle cx="74.5" cy="24.5" r="2.5" fill="#FFF4DC"/><circle cx="102.5" cy="24.5" r="2.5" fill="#FFF4DC"/><circle cx="130.5" cy="24.5" r="2.5" fill="#FFF4DC"/><circle cx="158.5" cy="24.5" r="2.5" fill="#FFF4DC"/><circle cx="186.5" cy="24.5" r="2.5" fill="#FFF4DC"/><circle cx="214.5" cy="24.5" r="2.5" fill="#FFF4DC"/><circle cx="242.5" cy="24.5" r="2.5" fill="#FFF4DC"/><text x="47.8" y="56.5" textLength="164.6" lengthAdjust="spacingAndGlyphs" font-family="Bungee" font-size="26.2" fill="#FFF4DC">FOUR POSES</text><path d="M256 0L258.715 9.28471L268 12L258.715 14.7153L256 24L253.285 14.7153L244 12L253.285 9.28471L256 0Z" fill="#C9C9CF"/></svg><p>step in &amp; strike four poses</p></div>
+</div>
 
 <div class="flash" id="flash"></div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>

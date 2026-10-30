@@ -1,7 +1,8 @@
 // Shared feed: looks posted by everyone, stored in Supabase.
 // Only the design (template, colours, fonts, filter, caption) is ever sent, never photos.
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config.js';
-import { TEMPLATES, FILTERS, FONTS, BORDER_PATTERNS, THICKNESS, defaultLook } from './render.js';
+import { TEMPLATES, FILTERS, FONTS, BORDER_PATTERNS, THICKNESS, CAPSPACE, defaultLook } from './render.js';
+import { STICKERS } from './stickers.js';
 
 export const enabled = !!(SUPABASE_URL && SUPABASE_ANON_KEY);
 // Works with both the legacy anon key (a JWT) and the newer sb_publishable_ key.
@@ -22,6 +23,9 @@ export function cleanLook(raw) {
   l.dateStamp = raw.dateStamp !== false;
   const b = raw.border || {};
   l.border = { color: HEXC.test(b.color || '') ? b.color : null, pattern: BORDER_PATTERNS[b.pattern] ? b.pattern : 'none', thickness: THICKNESS[b.thickness] ? b.thickness : 'M' };
+  if (raw.capSpace in CAPSPACE) l.capSpace = raw.capSpace;
+  const num = (v, a, b) => Number.isFinite(v) ? Math.max(a, Math.min(b, v)) : null;
+  l.stickers = (Array.isArray(raw.stickers) ? raw.stickers : []).slice(0, 12).map(k => k && STICKERS[k.k] ? { k: k.k, x: num(k.x, -0.6, 1.6), y: num(k.y, -0.2, 1.2), s: num(k.s, 0.04, 1.4), r: num(k.r, -7, 7) ?? 0 } : null).filter(k => k && k.x != null && k.y != null && k.s != null);
   return l;
 }
 const cleanNick = n => (typeof n === 'string' && /^@[A-Za-z0-9._]{1,20}$/.test(n)) ? n : null;
